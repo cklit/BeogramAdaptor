@@ -44,8 +44,7 @@ As soon as it is connected, enter _beogram.local_ in your browser.
 Here you can enter the IP-address of the product you have connected the Beogram to. Press Submit to save.
 The ESP32 now will monitor the event stream from the Mozart or ASE-based product.
 
-[![Example:](https://img.youtube.com/vi/4vIYRqgCV9g/0.jpg)](https://www.youtube.com/watch?v=4vIYRqgCV9g)
-
+<img src="settings-page.png" width="400">
 
 
 # Usage and limitations
