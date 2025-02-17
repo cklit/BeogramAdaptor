@@ -1,6 +1,7 @@
 # BeogramAdaptor
 This project uses an ESP32 to connect to a Bang & Olufsen Connected Audio product, and will send simple commands to a Beogram player whenever Line-in is selected. See more info below.
 
+
 ### Compatible with all Bang & Olufsen Connected Audio products that feature a Line-in source * / **
 Can be used with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
 
@@ -22,6 +23,7 @@ Basically, this is a female 7-pin DIN to male 3.5mm jack cable/adaptor with a li
 
 In the DIN-end of the cable an ESP32 is connected to the data pins from the Beogram player. The ESP32 requires a separate USB power supply.
 
+
 # Hardware
 Since the Data Link bus is running on 5V and an ESP32 accepts 3.3V on the GPIO pins, we need to add a little hardware. Also, Data Link is sending and receiving on the same wire, so we needed to do some trickery to get communication in both directions.
 
@@ -36,6 +38,32 @@ Diagram:
 
 ![Diagram](Diagram.png)
 
+
+# How to install
+If you have an existing BeogramAdaptor and you want to update the board, go to _beogram.local_ and update using the OTA-release files from this repository.
+
+
+If you want to install the BeogramAdaptor from scratch, download the release package (.zip), which includes 4 .bin files.
+
+Connect your Wemos ESP32 S3 Mini board to your computer via USB, and go to https://espressif.github.io/esptool-js/ (you must use the Chrome browser).
+
+In the Program field, ensure that the Baudrate is set to 921600. Press **Connect**. Select your ESP32 (mine is called cu.usbmodem1101. but YMMV), and press Connect.
+
+
+Now a new field appears: **Flash Address**. In the right-hand side you can select a file. We need 4 lines filled out exactly as shown below. For each line, press **Add file.**
+
+<img src="flashing-tool.png" width="500">
+
+| Flash address | File |
+| -------- | ------- |
+| 0x0 | x.bootloader.bin |
+| 0x8000 | x.partitions.bin |
+| 0xe000 | boot_app0.bin |
+| 0x10000 | x.release.bin |
+
+Once this is filled out, press the **Program** button.
+
+
 # Setup
 Once it is powered on it will start a Soft AP called _Beogram_ that you can connect to (password is _password_), which allows you to add the credentials to your own WiFi network.
 
@@ -44,7 +72,7 @@ As soon as it is connected, enter _beogram.local_ in your browser.
 Here you can enter the IP-address of the product you have connected the Beogram to. Press Submit to save.
 The ESP32 now will monitor the event stream from the Mozart or ASE-based product.
 
-<img src="settings-page.png" width="400">
+<img src="settings-page.png" width="500">
 
 
 # Usage and limitations
