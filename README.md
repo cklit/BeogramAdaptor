@@ -52,7 +52,7 @@ In the Program field, ensure that the Baudrate is set to 921600. Press **Connect
 
 Now a new field appears: **Flash Address**. In the right-hand side you can select a file. We need 4 lines filled out exactly as shown below. For each line, press **Add file.**
 
-<img src="flashing-tool.png" width="500">
+<img src="flashing-tool.png">
 
 | Flash address | File |
 | -------- | ------- |
