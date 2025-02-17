@@ -93,6 +93,8 @@ Next and previous works directly on the Mozart product (the < and > buttons are 
 
 
 With a connected Beoremote One BT you can use |<< and >>| to change track (once enabled on the webpage _beogram.local_). 
+_Remember to toggle this setting off before disconnecting the Mozart product, e.g. if you're switching to a different product._
+
 
 It is not possible to change track using the app or Beoremote Halo. Neither is it possible to change track from another room that has joined the experience.
 
@@ -103,6 +105,9 @@ Play/Pause works directly on the Mozart product, from the app and Beoremote One.
 Here is an example of the usage with a Beoremote One:
 
 [![Example:](https://img.youtube.com/vi/2GDzm5rNWII/0.jpg)](https://www.youtube.com/watch?v=2GDzm5rNWII)
+
+
+
 
 **_ASE platform-based products only_:**
 When using the ASE-version of the Beogram Adaptor it is not possible to activate Play, Pause, Next or Previous directly on the product. 
