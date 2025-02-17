@@ -47,7 +47,7 @@ If you want to install the BeogramAdaptor from scratch, download the release pac
 
 Connect your Wemos ESP32 S3 Mini board to your computer via USB, and go to https://espressif.github.io/esptool-js/ (you must use the Chrome browser).
 
-In the Program field, ensure that the Baudrate is set to 921600. Press **Connect**. Select your ESP32 (mine is called cu.usbmodem1101. but YMMV), and press Connect.
+In the Program field, ensure that the Baudrate is set to 921600. Press **Connect**. Select your ESP32 (mine is called cu.usbmodem1101, but YMMV), and press **Connect**.
 
 
 Now a new field appears: **Flash Address**. In the right-hand side you can select a file. We need 4 lines filled out exactly as shown below. For each line, press **Add file.**
@@ -61,7 +61,7 @@ Now a new field appears: **Flash Address**. In the right-hand side you can selec
 | 0xe000 | boot_app0.bin |
 | 0x10000 | x.release.bin |
 
-Once this is filled out, press the **Program** button.
+Once this is filled out, press the **Program** button. The flashing process usually takes around 30 seconds.
 
 
 # Setup
