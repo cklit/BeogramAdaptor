@@ -38,7 +38,7 @@ I have built my prototype using:
 
 Diagram:
 
-![Diagram](/screenshots/breadboard_diagram.png)
+![Diagram](/schematics/breadboard_diagram.png)
 
 
 # How to install
