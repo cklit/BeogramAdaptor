@@ -122,6 +122,8 @@ If a Beogram CD player is connected, it will also show the currently playing tra
 
 _If you already is utilising the custom pages, e.g. through a Beoliving Intelligence, do not add your Halo to the Beogram adaptor. Halo can only connect to one client at a time._
 
+<img src="/screenshots/Halo_controls.jpeg" width="400px">
+
 # REST calls
 For testing or integration with a control system, you can send commands directly to the Beogram player. I highly recommend using the IP address instead of beogram.local for these requests, as DNS lookup slows things down significantly.
 
