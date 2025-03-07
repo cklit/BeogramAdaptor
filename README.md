@@ -109,7 +109,7 @@ Play, Pause, Next and previous works directly on the Mozart product (the < and >
 With a connected Beoremote One BT you can do basic control of the connected Beogram. 
 
 1. Activate Line-in
-2. Press List on Beoremote One BT and ensure that **Control** is marked in the remote list
+2. Press List on Beoremote One BT and ensure that **Control** is highlighted in the remote list
 3. Press ▶, ⏸, ⏮ or ⏭ to control the Beogram player
     - If a Beogram CD player is connected, it is also possible to use the digit keys to change to a specific track   
 
