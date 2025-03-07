@@ -16,7 +16,8 @@
 #define LEDPIN 47
 #define NUMPIXELS 1
 #define FIRMWARE_VERSION "MOZ.2025.3.7"
-bool debugSerial = false;
+
+bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
 const int WEBSOCKET_PORT = 9339;
 const int HALO_WEBSOCKET_PORT = 8080;
