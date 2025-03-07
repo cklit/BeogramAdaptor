@@ -23,30 +23,27 @@ const int HALO_WEBSOCKET_PORT = 8080;
 const char* DEVICE_NAME = "Beogram";
 const char* AP_SSID = "BeogramAdaptor";
 const char* AP_PASSWORD = "password";
-const unsigned long RECONNECT_INTERVAL = 5000;
-const unsigned long DEBOUNCE_DELAY = 100;
 
-unsigned long lastStartEventTime = 0;  // Track the last processed 'started' event time
-unsigned long wsLastReconnectAttempt = 0;
-unsigned long lastReceiveTime = 0;
-unsigned long playDelayStart = 0;
-unsigned long haloActionTime = 0;
-
-static unsigned long lastByteTime = 0;
-const unsigned long BYTE_TIMEOUT = 60; // 60ms timeout between bytes
-
+const unsigned long reconnectInterval = 5000;
+static unsigned long wsLastReconnectAttempt = millis();  
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long wsLastPingReceived = millis();
 static unsigned long haloLastPingReceived = millis();
-
-const unsigned long haloActionDelay = 800;
 const unsigned long pingTimeout = 10000;
-const unsigned long pingInterval = 10000;
 
-bool haloControls;
+unsigned long haloActionTime = 0;  //set millis when certain Halo state/page updates are triggered
+const unsigned long haloActionDelay = 800; //defines the delay from when haloActionTime is set until the update is sent
 
-bool isLineInActive = false;
-bool muteState = false;
+unsigned long lastStartEventTime = 0;  // Track the last processed 'started' event time
+unsigned long delayPlayAfterDigit = 0; //set millis to delay PLAY command to CD player, when using digits
+
+const unsigned long stateDebounceDelay = 100;
+
+static unsigned long lastByteTime = 0; //set millis when byte is received
+const unsigned long byteTimeout = 60; // if more than 60ms between bytes, reset the buffer
+
+bool haloControls; 
+bool lineInActive = false;
 bool waitingForPlay = false;
 
 enum BeogramCommand : uint8_t {
@@ -83,22 +80,6 @@ enum HaloUpdate {
     PAGE,
     NONE
 };
-
-PlaybackState playbackState = BOOT;
-HaloUpdate haloUpdate = NONE;
-BeogramCommand pendingPlayCommand;
-Adafruit_NeoPixel pixels(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
-Preferences preferences;
-HTTPClient http;
-String wsIP;
-String haloIP;
-
-WiFiManager wm;
-using namespace websockets;
-WebsocketsClient client;
-WebsocketsClient remoteClient;
-WebsocketsClient haloClient;
-WebServer server(80);
 
 enum BeogramFeedback : uint8_t {
     TRACK1 = 0x01,   
@@ -162,6 +143,22 @@ bool isValidIPAddress(const String& ip) {
     }
     return false;
 }
+
+PlaybackState playbackState = BOOT;
+HaloUpdate haloUpdate = NONE;
+BeogramCommand pendingPlayCommand;
+Adafruit_NeoPixel pixels(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
+Preferences preferences;
+HTTPClient http;
+String wsIP;
+String haloIP;
+
+WiFiManager wm;
+using namespace websockets;
+WebsocketsClient client;
+WebsocketsClient remoteClient;
+WebsocketsClient haloClient;
+WebServer server(80);
 
 const char* htmlPage PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -469,7 +466,7 @@ void checkWiFiConnection() {
 }
 
 void checkWebSocketConnection() {
-    if (millis() - wsLastReconnectAttempt > RECONNECT_INTERVAL) {
+    if (millis() - wsLastReconnectAttempt > reconnectInterval) {
         wsLastReconnectAttempt = millis();
         Serial.println("Reconnecting product websocket...");
         if (client.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT).c_str())) {
@@ -481,7 +478,7 @@ void checkWebSocketConnection() {
     }
 
     // Check and reconnect second websocket
-    if (millis() - wsLastReconnectAttempt > RECONNECT_INTERVAL) {
+    if (millis() - wsLastReconnectAttempt > reconnectInterval) {
         wsLastReconnectAttempt = millis();
         Serial.println("Reconnecting RemoteControl webSocket...");
         if (remoteClient.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str())) {
@@ -503,7 +500,7 @@ void checkPingWebsocket() {
         }
     } 
     if (haloClient.available()) {
-        if (millis() - haloLastPingReceived >= pingInterval) {
+        if (millis() - haloLastPingReceived >= pingTimeout) {
             haloClient.ping();
             haloLastPingReceived = millis(); // Reset the timer
         }
@@ -547,7 +544,7 @@ void handleHttpResponse(const String& endpoint, const String& response) {
 
             if (source == "lineIn" && state == "started" && haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-                isLineInActive = true;
+                lineInActive = true;
                 playbackState = PLAYING;
                 Serial.println("Polled Playing state from product");
             } else {
@@ -748,14 +745,14 @@ void processWebSocketMessage(const String& message) {
 
     if (message.indexOf("\"eventType\":\"WebSocketEventSourceChange\"") != -1) {
         if (message.indexOf("\"id\":\"lineIn\"") != -1) {
-            isLineInActive = true;
+            lineInActive = true;
             Serial.println("✅ Line-in activated");
             haloActionTime = millis();  // Store the current time  
             if (haloControls) {
                 haloUpdate = PAGE;
             }             
         } else {
-            isLineInActive = false;
+            lineInActive = false;
             Serial.println("❌ Source changed, Line-in deactivated");
             if (playbackState == PLAYING) {
                 playbackState = PAUSED;
@@ -778,9 +775,9 @@ void processWebSocketMessage(const String& message) {
         Serial.println("🛑 Standby command detected on websocket. Sent STBY command to Beogram");
     } 
 
-    else if (isLineInActive) {
+    else if (lineInActive) {
         if (message.indexOf("\"value\":\"started\"") != -1) {
-            if (currentTime - lastStartEventTime > DEBOUNCE_DELAY) {
+            if (currentTime - lastStartEventTime > stateDebounceDelay) {
                 lastStartEventTime = currentTime;
                 if (playbackState != BOOT) {
                       if (playbackState != PLAYING) {
@@ -823,7 +820,7 @@ void processWebSocketMessage(const String& message) {
 void processRemoteWebSocketMessage(const String& message) {
     if (message.indexOf("\"eventType\":\"WebSocketEventBeoRemoteButton\"") != -1 &&
        message.indexOf("\"Type\":\"KeyPress\"") != -1 &&
-        isLineInActive) {  // Ensure ALL commands require isLineInActive to be true
+        lineInActive) {  // Ensure ALL commands require lineInActive to be true
 
         // Handle standard control commands
         if (message.indexOf("\"Key\":\"Wind\"") != -1) {
@@ -864,7 +861,7 @@ void processRemoteWebSocketMessage(const String& message) {
                 sendHexCommand(digitCommand);
 
                 // Start the non-blocking delay
-                playDelayStart = millis();
+                delayPlayAfterDigit = millis();
                 waitingForPlay = true;
                 Serial.printf("🔢 Sent Digit %c, waiting 1500ms before PLAY\n", digitChar);
             }
@@ -873,7 +870,7 @@ void processRemoteWebSocketMessage(const String& message) {
 }
 
 void sendPlayAfterDelay() {
-    if (waitingForPlay && millis() - playDelayStart >= 1000) {
+    if (waitingForPlay && millis() - delayPlayAfterDigit >= 1000) {
         sendHexCommand(PLAY);
         waitingForPlay = false; // Reset flag
         Serial.println("▶️ Sent PLAY after 1000ms delay");
@@ -895,8 +892,8 @@ void handleSerial1Data() {
         Serial.println(receivedByte, HEX);
         }
         
-        // Reset buffer if more than BYTE_TIMEOUT between bytes
-        if (currentTime - lastByteTime > BYTE_TIMEOUT) {
+        // Reset buffer if more than byteTimeout between bytes
+        if (currentTime - lastByteTime > byteTimeout) {
             bufferIndex = 0;
         }
         lastByteTime = currentTime;
@@ -913,15 +910,15 @@ void handleSerial1Data() {
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
             }       
-            if (!isLineInActive) {
+            if (!lineInActive) {
                 sendHttpRequest("/api/v1/playback/sources/active/lineIn", "POST");
-            } else if (isLineInActive) {
+            } else if (lineInActive) {
                 sendHttpRequest("/api/v1/playback/command/play", "POST");
             }
         } else if (state == STOPPED_FB) {
             bufferIndex = 0;
             Serial.println("Beogram reported OFF state.");
-            if (playbackState == PLAYING && isLineInActive) {
+            if (playbackState == PLAYING && lineInActive) {
                 playbackState = STOPPED;
                 Serial.println("⏹️ Beogram has stopped.");
                 sendHttpRequest("/api/v1/playback/command/stop", "POST");
@@ -934,7 +931,7 @@ void handleSerial1Data() {
         } else if (state == STANDBY_FB) {
             bufferIndex = 0;
             Serial.println("Beogram reported STANDBY state.");
-            if (playbackState == PLAYING && isLineInActive) {
+            if (playbackState == PLAYING && lineInActive) {
                 playbackState = STOPPED;
                 Serial.println("⏹️ Beogram has turned off.");
                 sendHttpRequest("/api/v1/playback/command/stop", "POST");
@@ -950,7 +947,7 @@ void handleSerial1Data() {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
             }            
           
-            if (isLineInActive) {
+            if (lineInActive) {
                 sendHttpRequest("/api/v1/playback/command/stop", "POST");
             }
         } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
@@ -1034,7 +1031,7 @@ void onMessageCallback(WebsocketsMessage message) {
         pendingUpdate.timestamp = millis();
     }
 
-    if (haloControls && isLineInActive && doc.containsKey("event") && doc["event"]["type"] == "system" && doc["event"]["state"] == "active") {
+    if (haloControls && lineInActive && doc.containsKey("event") && doc["event"]["type"] == "system" && doc["event"]["state"] == "active") {
         haloActionTime = millis();  // Store the current time
         haloUpdate = PAGE;
     }
@@ -1049,7 +1046,7 @@ void secondButtonUpdate() {
 
 void connectToHalo() {
     haloClient.poll();    
-    if (millis() - haloLastReconnectAttempt > RECONNECT_INTERVAL) {
+    if (millis() - haloLastReconnectAttempt > reconnectInterval) {
         haloLastReconnectAttempt = millis(); 
         if (!haloClient.available() && haloIP.length() > 0) {
             Serial.println("🔄 Reconnecting to Halo WebSocket at: " + haloIP);
@@ -1071,7 +1068,7 @@ void activateHaloPage() {
     }
 
     if (haloClient.available() && haloUpdate == STATE && (millis() - haloActionTime >= haloActionDelay)) {
-        if (!isLineInActive) {
+        if (!lineInActive) {
             haloUpdate = NONE;
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
         } else {
