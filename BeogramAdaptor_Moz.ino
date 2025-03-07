@@ -26,7 +26,7 @@ const char* AP_SSID = "BeogramAdaptor";
 const char* AP_PASSWORD = "password";
 
 const unsigned long reconnectInterval = 5000;
-static unsigned long wsLastReconnectAttempt = millis();  
+unsigned long wsLastReconnectAttempt = 0;  
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long wsLastPingReceived = millis();
 static unsigned long haloLastPingReceived = millis();
@@ -493,7 +493,12 @@ void checkWebSocketConnection() {
 
 void checkPingWebsocket() {
 //    wsLastPingReceived = millis();
-    if (!client.available() && wsIP.length() > 0) {    
+    if (client.available() && wsIP.length() > 0) {    
+        if (millis() - wsLastPingReceived >= pingTimeout) {
+            client.ping();
+            wsLastPingReceived = millis();
+        }
+    } else if (!client.available() && wsIP.length() > 0) {    
         if (millis() - wsLastPingReceived >= pingTimeout) {
             client.close();
             remoteClient.close();
@@ -580,8 +585,6 @@ void sendHttpRequest(const String& endpoint, const String& method = "GET", const
         if (httpResponseCode == HTTP_CODE_OK) {
             String response = http.getString();
             handleHttpResponse(endpoint, response);
-        } else {
-            Serial.println("HTTP request failed, code: " + String(httpResponseCode));
         }
 
         http.end();
