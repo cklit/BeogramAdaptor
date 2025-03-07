@@ -33,6 +33,7 @@ I have built my prototype using:
 - 1x EL817 optocoupler
 - 1x 330ohm resistor
 - 1x 1K resistor
+- 2x 10K resistors
 
 Diagram:
 
