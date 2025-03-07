@@ -34,6 +34,8 @@ I have built my prototype using:
 - 1x 330ohm resistor
 - 1x 1K resistor
 - 2x 10K resistors
+- 1x female DIN7 (or 8) plug
+- 1x stereo jack connector
 
 Diagram:
 
