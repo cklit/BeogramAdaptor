@@ -468,37 +468,32 @@ void checkWiFiConnection() {
 
 void checkWebSocketConnection() {
     if (millis() - wsLastReconnectAttempt > reconnectInterval) {
-        wsLastReconnectAttempt = millis();
         Serial.println("Reconnecting product websocket...");
+        wsLastReconnectAttempt = millis();        
         if (client.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT).c_str())) {
             client.send("Hi Server!");
             Serial.println("Product webSocket reconnected!");
         } else {
             Serial.println("Product webSocket reconnection failed.");
         }
-    }
-
-    // Check and reconnect second websocket
-    if (millis() - wsLastReconnectAttempt > reconnectInterval) {
-        wsLastReconnectAttempt = millis();
-        Serial.println("Reconnecting RemoteControl webSocket...");
         if (remoteClient.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str())) {
             remoteClient.send("Hi Server!");
-            Serial.println("Secondary websocket reconnected!");
+            Serial.println("Secondary websocket reconnected!");            
         } else {
-            Serial.println("Secondary websocket reconnection failed.");
+            Serial.println("Remote webSocket reconnection failed.");
         }
     }
 }
 
 void checkPingWebsocket() {
 //    wsLastPingReceived = millis();
-    if (client.available() && wsIP.length() > 0) {    
+    if ((client.available() || remoteClient.available()) && wsIP.length() > 0) {    
         if (millis() - wsLastPingReceived >= pingTimeout) {
             client.ping();
+            remoteClient.ping();
             wsLastPingReceived = millis();
         }
-    } else if (!client.available() && wsIP.length() > 0) {    
+    } else if ((!client.available() || !remoteClient.available()) && wsIP.length() > 0) {    
         if (millis() - wsLastPingReceived >= pingTimeout) {
             client.close();
             remoteClient.close();
