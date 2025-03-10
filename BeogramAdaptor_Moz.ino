@@ -15,7 +15,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.3.7"
+#define FIRMWARE_VERSION "MOZ.2025.3.10"
 
 bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
@@ -497,6 +497,7 @@ void checkPingWebsocket() {
         if (millis() - wsLastPingReceived >= pingTimeout) {
             client.close();
             remoteClient.close();
+            delay(10);
             checkWebSocketConnection();  // Attempt reconnection
         }
     } 
