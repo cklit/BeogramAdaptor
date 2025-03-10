@@ -24,7 +24,7 @@ In the DIN-end of the cable an ESP32 is connected to the data pins from the Beog
 
 Principle:
 
-![Connection](/images/connection.png)
+![Connection](/images/connection1.png)
 
 # Hardware
 Since the Data Link bus is running on 5V and an ESP32 accepts 3.3V on the GPIO pins, we need to add a little hardware. Also, Data Link is sending and receiving on the same wire, so we needed to do some trickery to get communication in both directions.
