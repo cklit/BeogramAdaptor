@@ -133,12 +133,11 @@ For testing or integration with a control system, you can send commands directly
 Example: ```curl --location --request POST 'http://192.168.100.37/command/next'```
 
 
-Play: POST <ip>/command/play
+| Command | Method | Endpoint |
+| -------- | ------- | ------- |
+| Play | POST | <ip>/command/play |
+| Stop | POST | <ip>/command/stop |
+| Next | POST | <ip>/command/next |
+| Previous | POST | <ip>/command/prev |
+| Standby | POST | <ip>/command/standby |
 
-Stop: POST <ip>/command/stop
-
-Next: POST <ip>/command/next
-
-Prev: POST <ip>/command/prev
-
-Standby: POST <ip>/command/standby
