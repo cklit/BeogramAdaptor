@@ -15,7 +15,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.3.10"
+#define FIRMWARE_VERSION "MOZ.2025.3.11"
 
 bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
@@ -41,7 +41,6 @@ unsigned long delayPlayAfterDigit = 0; //set millis to delay PLAY command to CD 
 const unsigned long stateDebounceDelay = 100;
 
 static unsigned long lastByteTime = 0; //set millis when byte is received
-const unsigned long byteTimeout = 60; // if more than 60ms between bytes, reset the buffer
 
 bool haloControls; 
 bool lineInActive = false;
@@ -106,30 +105,41 @@ enum BeogramFeedback : uint8_t {
 };
 
 BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
-    if (length == 2) {
+    if (debugSerial == true) {
+        Serial.print("Identifying state for sequence: ");
+        for (size_t i = 0; i < length; ++i) {
+            Serial.print(sequence[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.print("Length: ");
+        Serial.println(length);
+    }
+    if (length == 5) {
+        if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
+        if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
+        if (sequence[0] == 0x78 && sequence[4] == 0x7C) return TRACK7;  
+        if (sequence[0] == 0x78 && sequence[4] == 0x7F) return TRACK13;          
+    } else if (length == 2) {
         if (sequence[0] == PLAYING_FB && sequence[1] == PLAYING_FB) return PLAYING_FB;
         if (sequence[0] == STOPPED_FB && sequence[1] == STOPPED_FB) return STOPPED_FB;
         if (sequence[0] == STANDBY_FB && sequence[1] == STANDBY_FB) return STANDBY_FB;
         if (sequence[0] == EJECTED_FB && sequence[1] == EJECTED_FB) return EJECTED_FB;
-    }
-    if (length == 4) {
-        if (sequence[0] == 0x78 && sequence[3] == 0x77) return TRACK1;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7B) return TRACK2;
-        if (sequence[0] == 0x78 && sequence[3] == 0x73) return TRACK3;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7D) return TRACK4;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7E) return TRACK8;
-        if (sequence[0] == 0x78 && sequence[3] == 0x76) return TRACK9;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7A) return TRACK10;
-        if (sequence[0] == 0x78 && sequence[3] == 0x72) return TRACK11;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7C) return TRACK12;
-        if (sequence[0] == 0x78 && sequence[3] == 0x1E) return TRACK13;
-        if (sequence[0] == 0x78 && sequence[3] == 0x0F) return TRACK14;
-        if (sequence[0] == 0x78 && sequence[3] == 0x70) return TRACK14_PLUS;
-    }
-    if (length == 5) {
-        if (sequence[0] == 0x78 && sequence[2] == 0x1C && sequence[4] == 0x7D) return TRACK5;
-        if (sequence[0] == 0x78 && sequence[2] == 0x0E && sequence[4] == 0x7E) return TRACK6;
-        if (sequence[0] == 0x78 && sequence[2] == 0x07 && sequence[4] == 0x7C) return TRACK7;
+    } else if (length == 4) {
+        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x77) return TRACK1;
+        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x7B) return TRACK2;
+        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x73) return TRACK3;
+        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x7D) return TRACK4;    
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x75) return TRACK5;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x79) return TRACK6;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x71) return TRACK7;                        
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7E) return TRACK8;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x76) return TRACK9;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7A) return TRACK10;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x72) return TRACK11;
+        if (sequence[0] == 0x78 && sequence[2] == 0x78 && sequence[3] == 0x7C) return TRACK12;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x1E || sequence[3] == 0x74)) return TRACK13;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x78 || sequence[3] == 0xF)) return TRACK14;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x70) return TRACK14_PLUS;
     }
     return UNKNOWN_STATE;
 }
@@ -779,15 +789,13 @@ void processWebSocketMessage(const String& message) {
         if (message.indexOf("\"value\":\"started\"") != -1) {
             if (currentTime - lastStartEventTime > stateDebounceDelay) {
                 lastStartEventTime = currentTime;
-                if (playbackState != BOOT) {
-                      if (playbackState != PLAYING) {
-                          sendHexCommand(PLAY);
-                          if (haloClient.available()) {
-                              sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-                          } 
-                          Serial.println("▶️ Product changed state to Play from Pause or Standby. Sent PLAY command to Beogram");
-                      }
-                }           
+                if (playbackState != PLAYING) {
+                    sendHexCommand(PLAY);
+                    if (haloClient.available()) {
+                        sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+                    } 
+                    Serial.println("▶️ Product changed state to Play from Pause or Standby. Sent PLAY command to Beogram");
+                }         
             }
         } 
         else if (message.indexOf("\"value\":\"stopped\"") != -1 && playbackState != STOPPED) {
@@ -863,17 +871,78 @@ void processRemoteWebSocketMessage(const String& message) {
                 // Start the non-blocking delay
                 delayPlayAfterDigit = millis();
                 waitingForPlay = true;
-                Serial.printf("🔢 Sent Digit %c, waiting 1500ms before PLAY\n", digitChar);
+                Serial.printf("🔢 Sent Digit %c\n", digitChar);
             }
         }
     }
 }
 
 void sendPlayAfterDelay() {
-    if (waitingForPlay && millis() - delayPlayAfterDigit >= 1000) {
+    if (waitingForPlay && millis() - delayPlayAfterDigit >= 1200) {
         sendHexCommand(PLAY);
         waitingForPlay = false; // Reset flag
-        Serial.println("▶️ Sent PLAY after 1000ms delay");
+        Serial.println("▶️ Sent PLAY after 1200ms delay");
+    }
+}
+
+void processBuffer(BeogramFeedback state) {
+    if (state == PLAYING_FB) {
+        Serial.println("▶️ Beogram reported ON state.");
+        playbackState = PLAYING;
+        if (haloClient.available()) {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+        }
+        if (!lineInActive) {
+            sendHttpRequest("/api/v1/playback/sources/active/lineIn", "POST");
+        } else if (lineInActive) {
+            sendHttpRequest("/api/v1/playback/command/play", "POST");
+        }
+    } else if (state == STOPPED_FB) {
+        Serial.println("Beogram reported OFF state.");
+        if (playbackState == PLAYING && lineInActive) {
+            playbackState = STOPPED;
+            Serial.println("⏹️ Beogram has stopped.");
+            sendHttpRequest("/api/v1/playback/command/stop", "POST");
+            if (haloClient.available()) {
+                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
+            }
+        } else {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
+        }
+    } else if (state == STANDBY_FB) {
+        Serial.println("Beogram reported STANDBY state.");
+        if (playbackState == PLAYING && lineInActive) {
+            playbackState = STOPPED;
+            Serial.println("⏹️ Beogram has turned off.");
+            sendHttpRequest("/api/v1/playback/command/stop", "POST");
+            if (haloClient.available()) {
+                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
+            }
+        }
+    } else if (state == EJECTED_FB) {
+        Serial.println("⏏️ Beogram tray was ejected");
+        playbackState = STOPPED;
+        if (haloClient.available()) {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
+        }
+
+        if (lineInActive) {
+            sendHttpRequest("/api/v1/playback/command/stop", "POST");
+        }
+    } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
+        Serial.print("Track identified: ");
+        Serial.println("14+");
+        if (haloClient.available()) {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
+        }
+    } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
+        Serial.print("Track identified: ");
+        Serial.println(state, DEC);
+        if (haloClient.available()) {
+            char subtitle[20];
+            sprintf(subtitle, "Track %d", state);
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
+        }
     }
 }
 
@@ -887,88 +956,28 @@ void handleSerial1Data() {
         unsigned long currentTime = millis();
 
         if (debugSerial == true) {
-        // Print all incoming messages for debugging
-        Serial.print("Received byte: 0x");
-        Serial.println(receivedByte, HEX);
-        }
-        
-        // Reset buffer if more than byteTimeout between bytes
-        if (currentTime - lastByteTime > byteTimeout) {
-            bufferIndex = 0;
-        }
-        lastByteTime = currentTime;
+          Serial.print("Received byte: 0x");
+          Serial.println(receivedByte, HEX);        
+        }        
 
         // Store the received byte in the buffer
         buffer[bufferIndex++] = receivedByte;
 
-        // Check if we have a complete sequence
+        lastByteTime = currentTime;
+
+        // Check if we have received 5 bytes
+        if (bufferIndex == 5) {
+            BeogramFeedback state = identifyState(buffer, bufferIndex);
+            processBuffer(state);
+            bufferIndex = 0;  // Reset buffer after processing
+        }
+    }
+
+    // Check if 35 ms have passed since the last byte was received
+    if (millis() - lastByteTime > 55 && bufferIndex > 0) {
         BeogramFeedback state = identifyState(buffer, bufferIndex);
-        if (state == PLAYING_FB) {
-            bufferIndex = 0;
-            Serial.println("▶️ Beogram reported ON state.");
-            playbackState = PLAYING;     
-            if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-            }       
-            if (!lineInActive) {
-                sendHttpRequest("/api/v1/playback/sources/active/lineIn", "POST");
-            } else if (lineInActive) {
-                sendHttpRequest("/api/v1/playback/command/play", "POST");
-            }
-        } else if (state == STOPPED_FB) {
-            bufferIndex = 0;
-            Serial.println("Beogram reported OFF state.");
-            if (playbackState == PLAYING && lineInActive) {
-                playbackState = STOPPED;
-                Serial.println("⏹️ Beogram has stopped.");
-                sendHttpRequest("/api/v1/playback/command/stop", "POST");
-                if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
-                }                                   
-            } else {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
-            }
-        } else if (state == STANDBY_FB) {
-            bufferIndex = 0;
-            Serial.println("Beogram reported STANDBY state.");
-            if (playbackState == PLAYING && lineInActive) {
-                playbackState = STOPPED;
-                Serial.println("⏹️ Beogram has turned off.");
-                sendHttpRequest("/api/v1/playback/command/stop", "POST");
-                if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
-                }                          
-            }            
-        } else if (state == EJECTED_FB) {
-            bufferIndex = 0;
-            Serial.println("⏏️ Beogram tray was ejected");
-            playbackState = STOPPED;
-            if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
-            }            
-          
-            if (lineInActive) {
-                sendHttpRequest("/api/v1/playback/command/stop", "POST");
-            }
-        } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
-              Serial.print("Track identified: ");
-              Serial.println("14+");
-              bufferIndex = 0; // Reset buffer after identifying a state
-              if (haloClient.available()) {
-                  sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
-              }
-              return;
-        } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
-              Serial.print("Track identified: ");
-              Serial.println(state, DEC);
-              bufferIndex = 0; // Reset buffer after identifying a track
-              if (haloClient.available()) {
-                  char subtitle[20];
-                  sprintf(subtitle, "Track %d", state);
-                  sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
-              }              
-              return;
-        } 
+        processBuffer(state);
+        bufferIndex = 0;  // Reset buffer after processing
     }
 }
 
@@ -1235,4 +1244,16 @@ void loop() {
     sendPlayAfterDelay();
     secondButtonUpdate();
     activateHaloPage();
+    if (Serial.available() > 0) {
+        String input = Serial.readStringUntil('\n');
+        input.trim();
+        
+        if (input == "debug 1") {
+            debugSerial = true;
+            Serial.println("Debug mode enabled");
+        } else if (input == "debug 0") {
+            debugSerial = false;
+            Serial.println("Debug mode disabled");
+        }
+    }    
 }
