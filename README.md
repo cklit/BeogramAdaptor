@@ -3,7 +3,7 @@ This project uses an ESP32 to connect to a Bang & Olufsen Connected Audio produc
 
 
 ### Compatible with all Bang & Olufsen Connected Audio products that feature a Line-in source * / **
-Can be used with any Bang & Olufsen Beogram with built-in RIAA***, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
+Can be used with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
 
 Here is a list of record players that feature Data Link and a built-in RIAA pre-amp:
 - Beogram 3500
