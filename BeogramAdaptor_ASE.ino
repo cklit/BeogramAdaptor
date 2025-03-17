@@ -14,7 +14,7 @@
 #define PIN 47
 #define NUMPIXELS 1
 #define DELAYVAL 500
-#define FIRMWARE_VERSION "ASE.2025.3.11"
+#define FIRMWARE_VERSION "ASE.2025.3.17"
 
 bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
@@ -831,7 +831,6 @@ void processBuffer(BeogramFeedback state) {
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
             Serial.println("⏹️ Beogram has stopped.");
-            sendHttpCommand("/BeoZone/Zone/Stream/Stop", "POST");
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
             }                                   
@@ -845,7 +844,6 @@ void processBuffer(BeogramFeedback state) {
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
             Serial.println("⏹️ Beogram has turned off.");
-            sendHttpCommand("/BeoZone/Zone/Stream/Stop", "POST");
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
             }                          
@@ -856,10 +854,6 @@ void processBuffer(BeogramFeedback state) {
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
         }            
-      
-        if (lineInActive) {
-            sendHttpCommand("/BeoZone/Zone/Stream/Stop", "POST");
-        }
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
