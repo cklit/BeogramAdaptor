@@ -11,7 +11,7 @@ Here is a list of record players that feature Data Link and a built-in RIAA pre-
 - Beogram 6500
 - Beogram 7000
 
-Also tested successfully with Beogram CD6500 (which means that it PROBABLY also works with most other Beogram CD models with Data Link).
+Also tested successfully with Beogram CD4500 and CD6500 (which means that it PROBABLY also works with other Beogram CD models with Data Link).
 
 _*Some products support Line-In through a passive USB-C to 3.5mm jack adaptor - but not all!_ <br>
 _** I have **not** tested this on a product with Google Assistant built-in._ <br>
