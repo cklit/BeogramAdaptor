@@ -15,7 +15,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.3.11"
+#define FIRMWARE_VERSION "MOZ.2025.3.19"
 
 bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
@@ -29,6 +29,7 @@ const unsigned long reconnectInterval = 5000;
 unsigned long wsLastReconnectAttempt = 0;  
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long wsLastPingReceived = millis();
+static unsigned long wsRemoteLastPingReceived = millis();
 static unsigned long haloLastPingReceived = millis();
 const unsigned long pingTimeout = 10000;
 
@@ -497,20 +498,30 @@ void checkWebSocketConnection() {
 
 void checkPingWebsocket() {
 //    wsLastPingReceived = millis();
-    if ((client.available() || remoteClient.available()) && wsIP.length() > 0) {    
+    if (client.available() && wsIP.length() > 0) {    
         if (millis() - wsLastPingReceived >= pingTimeout) {
             client.ping();
-            remoteClient.ping();
             wsLastPingReceived = millis();
         }
-    } else if ((!client.available() || !remoteClient.available()) && wsIP.length() > 0) {    
+    } else if (!client.available() && wsIP.length() > 0) {    
         if (millis() - wsLastPingReceived >= pingTimeout) {
             client.close();
+            delay(10);
+            checkWebSocketConnection();  // Attempt reconnection
+        }
+    } else if (remoteClient.available() && wsIP.length() > 0) {    
+        if (millis() - wsRemoteLastPingReceived >= pingTimeout) {
+            remoteClient.ping();
+            wsRemoteLastPingReceived = millis();
+        }
+    } else if (!remoteClient.available() && wsIP.length() > 0) {    
+        if (millis() - wsRemoteLastPingReceived >= pingTimeout) {
             remoteClient.close();
             delay(10);
             checkWebSocketConnection();  // Attempt reconnection
         }
-    } 
+    }  
+
     if (haloClient.available()) {
         if (millis() - haloLastPingReceived >= pingTimeout) {
             haloClient.ping();
@@ -1157,11 +1168,11 @@ void setup() {
     remoteClient.onEvent([](WebsocketsEvent event, String data) {
         if (event == WebsocketsEvent::ConnectionOpened) {
             Serial.println("Secondary websocket connected");
-            wsLastPingReceived = millis();
+            wsRemoteLastPingReceived = millis();
         } else if (event == WebsocketsEvent::ConnectionClosed) {
             Serial.println("Secondary websocket closed");
         } else if (event == WebsocketsEvent::GotPing || event == WebsocketsEvent::GotPong) {
-            wsLastPingReceived = millis();
+            wsRemoteLastPingReceived = millis();
         }
     });
     if (wsIP.length() > 0) {
