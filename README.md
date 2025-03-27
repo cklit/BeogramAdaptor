@@ -106,7 +106,7 @@ Sending a Standby or All-standby to the product from any interface will turn off
 ### Control using a Beoremote One BT:
 With a connected Beoremote One BT you can do basic control of the connected Beogram. 
 
-1. Activate Line-in
+1. Activate Line-in to start the Beogram.
 2. Press List on Beoremote One BT and ensure that **Control** is highlighted in the remote list
 3. Press ▶, ⏸, ⏮ or ⏭ to control the Beogram player
     - If a Beogram CD player is connected, it is also possible to use the digit keys to change to a specific track   
