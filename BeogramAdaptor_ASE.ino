@@ -120,10 +120,10 @@ BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
         if (sequence[0] == STANDBY_FB && sequence[1] == STANDBY_FB) return STANDBY_FB;
         if (sequence[0] == EJECTED_FB && sequence[1] == EJECTED_FB) return EJECTED_FB;
     } else if (length == 4) {
-        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x77) return TRACK1;
-        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x7B) return TRACK2;
-        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x73) return TRACK3;
-        if (sequence[0] == 0x78 && sequence[2] == 0x70 && sequence[3] == 0x7D) return TRACK4;    
+        if (sequence[0] == 0x78 && sequence[3] == 0x77) return TRACK1;
+        if (sequence[0] == 0x78 && sequence[3] == 0x7B) return TRACK2;
+        if (sequence[0] == 0x78 && sequence[3] == 0x73) return TRACK3;
+        if (sequence[0] == 0x78 && sequence[3] == 0x7D) return TRACK4;    
         if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x75) return TRACK5;
         if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x79) return TRACK6;
         if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x71) return TRACK7;                        
@@ -138,7 +138,6 @@ BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
     }
     return UNKNOWN_STATE;
 }
-
 PlaybackState playbackState = BOOT;
 HaloUpdate haloUpdate = NONE;
 BeogramCommand pendingPlayCommand;
