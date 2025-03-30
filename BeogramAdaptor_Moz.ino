@@ -1,21 +1,20 @@
 #include <ArduinoJson.h>
-#include <ArduinoJson.hpp>
 #include <WiFi.h>
 #include <WiFiManager.h>
 #include <HTTPClient.h>
 #include <ArduinoWebsockets.h>
-#include <ArduinoJson.h>
 #include <Preferences.h>
 #include <ESPmDNS.h>
 #include <WebServer.h>
 #include <Update.h>
 #include <Adafruit_NeoPixel.h>
+#include <ArduinoHA.h>
 
 #define RXD2 16
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.3.19"
+#define FIRMWARE_VERSION "MOZ.2025.3.30"
 
 bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
@@ -26,8 +25,9 @@ const char* AP_SSID = "BeogramAdaptor";
 const char* AP_PASSWORD = "password";
 
 const unsigned long reconnectInterval = 5000;
-unsigned long wsLastReconnectAttempt = 0;  
+static unsigned long wsLastReconnectAttempt = millis();  
 static unsigned long haloLastReconnectAttempt = millis();
+static unsigned long mqttLastReconnectAttempt = millis();
 static unsigned long wsLastPingReceived = millis();
 static unsigned long wsRemoteLastPingReceived = millis();
 static unsigned long haloLastPingReceived = millis();
@@ -41,11 +41,10 @@ unsigned long delayPlayAfterDigit = 0; //set millis to delay PLAY command to CD 
 
 const unsigned long stateDebounceDelay = 100;
 
-static unsigned long lastByteTime = 0; //set millis when byte is received
-
 bool haloControls; 
 bool lineInActive = false;
 bool waitingForPlay = false;
+bool mqttConnected = false;
 
 enum BeogramCommand : uint8_t {
     PLAY = 0x35,
@@ -158,12 +157,16 @@ bool isValidIPAddress(const String& ip) {
 
 PlaybackState playbackState = BOOT;
 HaloUpdate haloUpdate = NONE;
-BeogramCommand pendingPlayCommand;
 Adafruit_NeoPixel pixels(NUMPIXELS, LEDPIN, NEO_GRB + NEO_KHZ800);
 Preferences preferences;
 HTTPClient http;
 String wsIP;
 String haloIP;
+String triggerSource = "lineIn";  // default value
+
+String mqttIP;
+String mqttUser;
+String mqttPassword;
 
 WiFiManager wm;
 using namespace websockets;
@@ -171,6 +174,17 @@ WebsocketsClient client;
 WebsocketsClient remoteClient;
 WebsocketsClient haloClient;
 WebServer server(80);
+
+WiFiClient wifi;
+HADevice device;
+HAMqtt mqtt(wifi, device);
+HAButton bgPlay("beogramPlay");
+HAButton bgNext("beogramNext");
+HAButton bgPrev("BeogramPrev");
+HAButton bgStop("beogramStop");
+HAButton bgStandby("BeogramStandby");
+HASensor bgTrack("beogramCDTrack");
+HASensor bgPlaybackState("beogramPlaybackState");
 
 const char* htmlPage PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -213,6 +227,15 @@ const char* htmlPage PROGMEM = R"rawliteral(
       <span id="wsIP-error"></span><br>
       <button type="submit" id="ws-btn">Connect to product</button>
     </form>
+    <br><hr><br>
+    <h3>Input on connected product</h3><br>
+    <form id="source-form">
+      <label for="sourceSelect">Start Beogram when this source is active:</label>
+      <select id="sourceSelect" name="source">
+        <option value="lineIn">Line-In</option>
+        <option value="spdif">Optical</option>
+      </select>
+    </form>
     
     <br><hr><br>
     <h3>Beoremote Halo</h3>
@@ -229,7 +252,10 @@ const char* htmlPage PROGMEM = R"rawliteral(
     <label for="featureToggle" class="checkbox-label" align="center">
       <input type="checkbox" id="featureToggle" align="center"><span class="small-text">Activate Beogram Controls when waking up Halo</span>
     </label>
-
+    <br><hr><br>
+    <h3>Home Assistant auto-discovery</h3>
+    <p>MQTT Status: <span id="mqtt-status" class="disconnected">Disconnected</span></p>
+    <p><a href="/mqtt">Configure MQTT Settings</a></p>    
 
     <br><hr><br>
     <h3>Firmware Update</h3>
@@ -265,7 +291,13 @@ const char* htmlPage PROGMEM = R"rawliteral(
 
                 document.getElementById("featureToggle").checked = data.feature_enabled;
 
+                document.getElementById("sourceSelect").value = data.trigger_source;
+
                 document.getElementById("fw-version").textContent = data.firmware;
+
+                let mqttStatusElem = document.getElementById("mqtt-status");
+                mqttStatusElem.textContent = data.mqtt_connected ? "Connected" : "Disconnected";
+                mqttStatusElem.className = data.mqtt_connected ? "connected" : "disconnected";
 
                 // Handle visibility and button state for product
                 let wsInput = document.getElementById("wsIP");
@@ -402,6 +434,10 @@ const char* htmlPage PROGMEM = R"rawliteral(
             .catch(error => console.error("Error updating feature state:", error));
     });
 
+    document.getElementById("sourceSelect").addEventListener("change", function() {
+      fetch(`/update-source?source=${this.value}`, { method: "GET" })
+        .catch(error => console.error("Error updating source:", error));
+    });
 
     // Run updateStatus every 5 seconds
     setInterval(updateStatus, 5000);
@@ -410,7 +446,6 @@ const char* htmlPage PROGMEM = R"rawliteral(
 </body>
 </html>
 )rawliteral";
-
 
 // Struct to manage button update timing
 struct ButtonUpdate {
@@ -528,6 +563,23 @@ void checkPingWebsocket() {
             haloLastPingReceived = millis(); // Reset the timer
         }
     }
+}
+
+void checkMQTTConnection() {
+    if (!mqtt.isConnected() && mqttIP.length() > 0) {
+        if (millis() - mqttLastReconnectAttempt > reconnectInterval) { 
+            mqttLastReconnectAttempt = millis();
+            IPAddress broker;
+            if (broker.fromString(mqttIP)) {
+                Serial.println("🔁 Attempting MQTT reconnect...");
+                mqtt.begin(broker, mqttUser.c_str(), mqttPassword.c_str());
+            } else {
+                Serial.println("⚠️ Invalid MQTT broker IP format (reconnect attempt skipped)");
+            }
+        }
+    }
+
+    mqttConnected = mqtt.isConnected(); // Update status flag
 }
 
 void handleRoot() {
@@ -680,6 +732,103 @@ void handleUpdateHalo() {
     }
 }
 
+void handleUpdateTriggerSource() {
+    if (server.hasArg("source")) {
+        String newSource = server.arg("source");
+        if (newSource == "lineIn" || newSource == "spdif") {
+            triggerSource = newSource;
+            preferences.putString("triggerSource", triggerSource);
+            server.send(200, "text/plain", "Source updated");
+            return;
+        }
+    }
+    server.send(400, "text/plain", "Invalid source");
+}
+
+void handleMqttReset() {
+    preferences.remove("mqttIP");
+    preferences.remove("mqttUser");
+    preferences.remove("mqttPassword");
+
+    mqttIP = "";
+    mqttUser = "";
+    mqttPassword = "";
+
+    server.send(200, "text/html", "<h2>MQTT settings cleared.</h2><a href='/mqtt'>Go Back</a>");
+    delay(1000);
+    ESP.restart(); // Optional: reboot to apply changes
+}
+
+void handleMqttUpdate() {
+    if (server.hasArg("ip") && server.hasArg("user") && server.hasArg("pass")) {
+        mqttIP = server.arg("ip");
+        mqttUser = server.arg("user");
+        mqttPassword = server.arg("pass");
+
+        preferences.putString("mqttIP", mqttIP);
+        preferences.putString("mqttUser", mqttUser);
+        preferences.putString("mqttPassword", mqttPassword);
+
+        server.send(200, "text/html", "<h2>MQTT settings saved.</h2><a href='/mqtt'>Go Back</a>");
+        delay(1000);
+        ESP.restart(); // Optional but clean for applying settings
+    } else {
+        server.send(400, "text/plain", "Missing parameters");
+    }
+}
+
+void handleMqttConfig() {
+    String html = R"rawliteral(
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>MQTT Configuration</title>
+      <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f9; text-align: center; padding: 50px; }
+        .container { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); display: inline-block; }
+        input, button { margin: 10px; padding: 10px; width: 80%; }
+        label { display: block; margin-top: 10px; }
+        a { display: inline-block; margin-top: 20px; color: #333; text-decoration: none; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <h2>MQTT Configuration</h2>
+        <form method="POST" action="/mqtt">
+          <label for="ip">Broker IP Address:</label>
+          <input type="text" id="ip" name="ip" value=")rawliteral" + mqttIP + R"rawliteral(">
+
+          <label for="user">Username:</label>
+          <input type="text" id="user" name="user" value=")rawliteral" + mqttUser + R"rawliteral(">
+
+          <label for="pass">Password:</label>
+          <input type="password" id="pass" name="pass" value=")rawliteral" + mqttPassword + R"rawliteral(">
+
+          <button type="submit">Save Settings</button>
+        </form>
+
+        <form id="reset-form" method="GET" action="/mqtt/reset">
+          <button type="submit" style="background-color: #d9534f;">Reset MQTT Settings</button>
+        </form>
+
+        <script>
+          document.getElementById('reset-form').addEventListener('submit', function(e) {
+            if (!confirm('⚠️ This will erase your MQTT settings. Are you sure?')) {
+              e.preventDefault();
+            }
+          });
+        </script>
+
+        <a href="/">← Back to Main Page</a>
+      </div>
+    </body>
+    </html>
+    )rawliteral";
+    server.send(200, "text/html", html);
+}
+
 void handleUpdateFeature() {
     if (server.hasArg("enabled")) {
         String value = server.arg("enabled");
@@ -696,9 +845,10 @@ void handleStatus() {
     jsonResponse += "\"halo_ip\":\"" + haloIP + "\",";
     jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
-    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false");    
+    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
+    jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
+    jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";
     jsonResponse += "}";
-
     server.send(200, "application/json", jsonResponse);
 }
 
@@ -765,7 +915,7 @@ void processWebSocketMessage(const String& message) {
     unsigned long currentTime = millis();
 
     if (message.indexOf("\"eventType\":\"WebSocketEventSourceChange\"") != -1) {
-        if (message.indexOf("\"id\":\"lineIn\"") != -1) {
+        if (message.indexOf("\"id\":\"" + triggerSource + "\"") != -1) {
             lineInActive = true;
             Serial.println("✅ Line-in activated");
             haloActionTime = millis();  // Store the current time  
@@ -900,6 +1050,7 @@ void processBuffer(BeogramFeedback state) {
     if (state == PLAYING_FB) {
         Serial.println("▶️ Beogram reported ON state.");
         playbackState = PLAYING;
+        bgPlaybackState.setValue("Playing");  
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
@@ -908,23 +1059,13 @@ void processBuffer(BeogramFeedback state) {
         } else if (lineInActive) {
             sendHttpRequest("/api/v1/playback/command/play", "POST");
         }
-    } else if (state == STOPPED_FB) {
-        Serial.println("Beogram reported OFF state.");
+    } else if (state == STOPPED_FB || state == STANDBY_FB) {
+        Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
+        bgTrack.setValue("-");
+        bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            Serial.println("⏹️ Beogram has stopped.");
-            sendHttpRequest("/api/v1/playback/command/stop", "POST");
-            if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
-            }
-        } else {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
-        }
-    } else if (state == STANDBY_FB) {
-        Serial.println("Beogram reported STANDBY state.");
-        if (playbackState == PLAYING && lineInActive) {
-            playbackState = STOPPED;
-            Serial.println("⏹️ Beogram has turned off.");
+            Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
             sendHttpRequest("/api/v1/playback/command/stop", "POST");
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
@@ -932,6 +1073,8 @@ void processBuffer(BeogramFeedback state) {
         }
     } else if (state == EJECTED_FB) {
         Serial.println("⏏️ Beogram tray was ejected");
+        bgTrack.setValue("-");
+        bgPlaybackState.setValue("Ejected");          
         playbackState = STOPPED;
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
@@ -943,6 +1086,7 @@ void processBuffer(BeogramFeedback state) {
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
+        bgTrack.setValue("14+");
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
         }
@@ -953,7 +1097,11 @@ void processBuffer(BeogramFeedback state) {
             char subtitle[20];
             sprintf(subtitle, "Track %d", state);
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
-        }
+        } 
+        char trackNumber[20];
+        sprintf(trackNumber, "%d", state);
+        bgTrack.setValue(trackNumber);
+
     }
 }
 
@@ -1105,6 +1253,21 @@ void handleResetWifi() {
     ESP.restart(); 
 }
 
+void onButtonCommand(HAButton* sender)
+{
+    if (sender == &bgPlay) {
+        sendHexCommand(PLAY);  // PLAY
+    } else if (sender == &bgNext) {
+        sendHexCommand(NEXT);  // NEXT
+    } else if (sender == &bgPrev) {
+        sendHexCommand(PREVIOUS);  // PREVIOUS
+    } else if (sender == &bgStop) {
+        sendHexCommand(STOP);  // STOP
+    } else if (sender == &bgStandby) {
+        sendHexCommand(STANDBY);  // STANDBY
+    }
+}
+
 void setup() {
     Serial.begin(115200);
     Serial1.begin(320, SERIAL_7N1, RXD2, TXD2, true);
@@ -1132,6 +1295,34 @@ void setup() {
         Serial.println("Connected to WiFi!");
     }
 
+    byte mac[6];
+    WiFi.macAddress(mac);
+    device.setUniqueId(mac, sizeof(mac));
+    device.setName("Beogram Adaptor");
+    device.setSoftwareVersion(FIRMWARE_VERSION);
+    device.enableSharedAvailability();
+    device.enableLastWill();
+    bgPlay.setIcon("mdi:play-circle");
+    bgPlay.setName("Play");
+    bgNext.setIcon("mdi:skip-next-circle");
+    bgNext.setName("Next");
+    bgPrev.setIcon("mdi:skip-previous-circle");
+    bgPrev.setName("Previous");  
+    bgStop.setIcon("mdi:stop-circle");
+    bgStop.setName("Stop");
+    bgStandby.setIcon("mdi:power-standby");
+    bgStandby.setName("Standby"); 
+    bgTrack.setIcon("mdi:music-note-eighth");
+    bgTrack.setName("Track number");  
+    bgPlaybackState.setIcon("mdi:album");
+    bgPlaybackState.setName("Beogram state");            
+
+    bgPlay.onCommand(onButtonCommand);
+    bgNext.onCommand(onButtonCommand);
+    bgPrev.onCommand(onButtonCommand);
+    bgStop.onCommand(onButtonCommand);
+    bgStandby.onCommand(onButtonCommand);       
+
     if (!MDNS.begin(DEVICE_NAME)) {
         Serial.println("Error setting up MDNS responder!");
         while (1) {
@@ -1144,7 +1335,10 @@ void setup() {
     wsIP = preferences.getString("wsIP", "");
     haloIP = preferences.getString("haloIP", "");
     haloControls = preferences.getBool("feature_enabled", false);
-
+    mqttIP = preferences.getString("mqttIP", "");
+    mqttUser = preferences.getString("mqttUser", "");
+    mqttPassword = preferences.getString("mqttPassword", "");
+    triggerSource = preferences.getString("triggerSource", "lineIn");
 
     client.onMessage([](WebsocketsMessage msg) { processWebSocketMessage(msg.data()); });
     client.onEvent([](WebsocketsEvent event, String data) {
@@ -1197,8 +1391,13 @@ void setup() {
         haloClient.connect(("ws://" + haloIP + ":" + HALO_WEBSOCKET_PORT).c_str());
     }
 
+    server.on("/update-source", HTTP_GET, handleUpdateTriggerSource);
+
     server.on("/settings/reset-wifi", HTTP_GET, handleResetWifi);
 
+    server.on("/mqtt", HTTP_GET, handleMqttConfig);
+    server.on("/mqtt", HTTP_POST, handleMqttUpdate);
+    server.on("/mqtt/reset", HTTP_GET, handleMqttReset);
 
     server.on("/command/play", HTTP_POST, []() {
         sendHexCommand(PLAY);  // PLAY
@@ -1241,6 +1440,17 @@ void setup() {
     client.send("Hi Server!");
 
     MDNS.addService("http", "tcp", 80);
+
+    if (mqttIP.length() > 0) {
+        IPAddress broker;
+        if (broker.fromString(mqttIP)) {
+            mqtt.begin(broker, mqttUser.c_str(), mqttPassword.c_str());
+            Serial.println("🔌 Connecting to MQTT broker at: " + mqttIP);
+        } else {
+            Serial.println("⚠️ Invalid MQTT broker IP format");
+        }
+    }
+
 }
 
 void loop() {
@@ -1255,6 +1465,8 @@ void loop() {
     sendPlayAfterDelay();
     secondButtonUpdate();
     activateHaloPage();
+    mqtt.loop();
+    checkMQTTConnection();
     if (Serial.available() > 0) {
         String input = Serial.readStringUntil('\n');
         input.trim();
