@@ -618,7 +618,7 @@ void handleHttpResponse(const String& endpoint, const String& response) {
             String source = doc["source"]["id"].as<String>();
             String state = doc["state"]["value"].as<String>();
 
-            if (source == "lineIn" && state == "started" && haloClient.available()) {
+            if (source == triggerSource && state == "started" && haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
                 lineInActive = true;
                 playbackState = PLAYING;
@@ -989,8 +989,7 @@ void processWebSocketMessage(const String& message) {
 
 void processRemoteWebSocketMessage(const String& message) {
     if (message.indexOf("\"eventType\":\"WebSocketEventBeoRemoteButton\"") != -1 &&
-       message.indexOf("\"Type\":\"KeyPress\"") != -1 &&
-        lineInActive) {  // Ensure ALL commands require lineInActive to be true
+       message.indexOf("\"Type\":\"KeyPress\"") != -1 && lineInActive) {  
 
         // Handle standard control commands
         if (message.indexOf("\"Key\":\"Wind\"") != -1) {
@@ -1056,7 +1055,7 @@ void processBuffer(BeogramFeedback state) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
         if (!lineInActive) {
-            sendHttpRequest("/api/v1/playback/sources/active/lineIn", "POST");
+            sendHttpRequest("/api/v1/playback/sources/active/" + triggerSource, "POST");
         } else if (lineInActive) {
             sendHttpRequest("/api/v1/playback/command/play", "POST");
         }
