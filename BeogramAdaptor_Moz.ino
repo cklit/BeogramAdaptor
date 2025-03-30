@@ -228,11 +228,11 @@ const char* htmlPage PROGMEM = R"rawliteral(
       <button type="submit" id="ws-btn">Connect to product</button>
     </form>
     <br><hr><br>
-    <h3>Input on connected product</h3><br>
+    <h3>Select input</h3><br>
     <form id="source-form">
-      <label for="sourceSelect">Start Beogram when this source is active:</label>
+      <label for="sourceSelect">Beogram is connected to:</label>
       <select id="sourceSelect" name="source">
-        <option value="lineIn">Line-In</option>
+        <option value="lineIn">Line-In (default)</option>
         <option value="spdif">Optical</option>
       </select>
     </form>
@@ -565,22 +565,23 @@ void checkPingWebsocket() {
     }
 }
 
-void checkMQTTConnection() {
+void checkMQTTConnection(bool forceNow = false) {
     if (!mqtt.isConnected() && mqttIP.length() > 0) {
-        if (millis() - mqttLastReconnectAttempt > reconnectInterval) { 
+        if (forceNow || millis() - mqttLastReconnectAttempt > reconnectInterval) {
             mqttLastReconnectAttempt = millis();
             IPAddress broker;
             if (broker.fromString(mqttIP)) {
-                Serial.println("🔁 Attempting MQTT reconnect...");
+                Serial.println(forceNow ? "⚡ Initial MQTT connect..." : "🔁 Attempting MQTT reconnect...");
                 mqtt.begin(broker, mqttUser.c_str(), mqttPassword.c_str());
             } else {
-                Serial.println("⚠️ Invalid MQTT broker IP format (reconnect attempt skipped)");
+                Serial.println("⚠️ Invalid MQTT broker IP format (connect attempt skipped)");
             }
         }
     }
 
-    mqttConnected = mqtt.isConnected(); // Update status flag
+    mqttConnected = mqtt.isConnected(); // Always keep it updated
 }
+
 
 void handleRoot() {
     server.send(200, "text/html", htmlPage);
@@ -1441,15 +1442,7 @@ void setup() {
 
     MDNS.addService("http", "tcp", 80);
 
-    if (mqttIP.length() > 0) {
-        IPAddress broker;
-        if (broker.fromString(mqttIP)) {
-            mqtt.begin(broker, mqttUser.c_str(), mqttPassword.c_str());
-            Serial.println("🔌 Connecting to MQTT broker at: " + mqttIP);
-        } else {
-            Serial.println("⚠️ Invalid MQTT broker IP format");
-        }
-    }
+    checkMQTTConnection(true);  // Force immediate connect attempt
 
 }
 
