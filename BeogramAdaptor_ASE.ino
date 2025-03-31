@@ -17,7 +17,7 @@
 #define DELAYVAL 500
 #define FIRMWARE_VERSION "ASE.2025.4.1"
 
-bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
+bool debugSerial = false; 
 
 const int SSE_PORT = 8080;
 const int HALO_WEBSOCKET_PORT = 8080;
