@@ -84,8 +84,11 @@ As soon as it is connected, enter _beogram.local_ in your browser.
 Here you can enter the IP-address of the product you have connected the Beogram to. Press Submit to save.
 The ESP32 now will monitor the event stream from the product.
 
-<img src="/screenshots/configuration.png" width="50%">
+<img src="/screenshots/configuration.png" width="50%"><img src="/screenshots/mqtt.png" width="50%">
 
+Additionally (and optionally) you can select whether the Beogram player is connected to Line-in or Optical _(ensure that your product is compatible - requires 3rd party equipment)._ <br><br>
+You can also enter the IP-address of a Beoremote Halo to get player controls. <br><br>
+Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.
 
 
 ---
