@@ -14,9 +14,9 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.3.30"
+#define FIRMWARE_VERSION "MOZ.2025.4.1"
 
-bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
+bool debugSerial = false;
 
 const int WEBSOCKET_PORT = 9339;
 const int HALO_WEBSOCKET_PORT = 8080;
@@ -938,12 +938,11 @@ void processWebSocketMessage(const String& message) {
     }
 
     else if (message.indexOf("\"value\":\"networkStandby\"") != -1) {
-        sendHexCommand(STANDBY);
         playbackState = STOPPED;
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
         }
- 
+        sendHexCommand(STANDBY);
         Serial.println("🛑 Standby command detected on websocket. Sent STBY command to Beogram");
     } 
 
@@ -1294,14 +1293,13 @@ void setup() {
     } else {
         Serial.println("Connected to WiFi!");
     }
-
     byte mac[6];
     WiFi.macAddress(mac);
     device.setUniqueId(mac, sizeof(mac));
-    device.setName("Beogram Adaptor");
+    device.setName("BeogramAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
-    device.enableLastWill();
+    device.enableLastWill();    
     bgPlay.setIcon("mdi:play-circle");
     bgPlay.setName("Play");
     bgNext.setIcon("mdi:skip-next-circle");
@@ -1313,9 +1311,11 @@ void setup() {
     bgStandby.setIcon("mdi:power-standby");
     bgStandby.setName("Standby"); 
     bgTrack.setIcon("mdi:music-note-eighth");
-    bgTrack.setName("Track number");  
+    bgTrack.setName("Track");  
     bgPlaybackState.setIcon("mdi:album");
-    bgPlaybackState.setName("Beogram state");            
+    bgPlaybackState.setName("State");
+    mqtt.setDiscoveryPrefix("homeassistant");
+
 
     bgPlay.onCommand(onButtonCommand);
     bgNext.onCommand(onButtonCommand);
