@@ -90,7 +90,7 @@ Additionally (and optionally) you can select whether the Beogram player is conne
 You can also enter the IP-address of a Beoremote Halo to get player controls. <br><br>
 Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.
 
-<img src="/screenshots/home_assistant.png" width="50%">
+<img src="/screenshots/home_assistant.png" width="25%">
 
 
 ---
