@@ -15,7 +15,7 @@
 #define PIN 47
 #define NUMPIXELS 1
 #define DELAYVAL 500
-#define FIRMWARE_VERSION "ASE.2025.3.30"
+#define FIRMWARE_VERSION "ASE.2025.4.1"
 
 bool debugSerial = false; // set to true to print all incoming serial commands from Beogram
 
