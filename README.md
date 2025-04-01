@@ -53,6 +53,7 @@ Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup pag
 # Usage and limitations
 Now you are ready to use the system.
 You can start the Beogram player from the Connected Audio product, the app, a Beoremote Halo and/or a Beoremote One BT by selecting the **Line-in** source.
+A short demo of the different possibilities can be found here: https://youtu.be/YJ0Ucw3CIwc 
 
 
 Changing source away from Line-in will send a STOP command to the Beogram (pause, basically). 
