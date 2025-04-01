@@ -21,55 +21,9 @@ Basically, this is a female 7-pin DIN to male 3.5mm jack cable/adaptor with a li
 
 In the DIN-end of the cable an ESP32 is connected to the data pins from the Beogram player. The ESP32 requires a separate USB power supply.
 
-Principle:
+**Principle:**
 
 ![Connection](/images/connection1.png)
-
-# Hardware
-Since the Data Link bus is running on 5V and an ESP32 accepts 3.3V on the GPIO pins, we need to add a little hardware. Also, Data Link is sending and receiving on the same wire, so we needed to do some trickery to get communication in both directions.
-
-I have built my prototype using:
-- 1x Lolin S3 Mini (https://www.aliexpress.com/item/1005005449219195.html)
-- 1x LM358N op-amp
-- 1x EL817 optocoupler
-- 1x 330ohm resistor
-- 1x 1K resistor
-- 2x 10K resistors
-- 1x female DIN7 (or 8) plug
-- 1x stereo jack connector
-
-Diagram:
-
-![Diagram](/schematics/breadboard_diagram.png)
-
-
-# How to install
-If you have an existing BeogramAdaptor and you want to update the board, go to _beogram.local_ and update using the OTA-release files from this repository.
-
-
-If you want to install the BeogramAdaptor from scratch on a Lolin S3 Mini board, download the release package (.zip), which includes 4 .bin files.
-
-Connect your Lolin S3 Mini board to your computer via USB, and go to https://espressif.github.io/esptool-js/ (you must use the Chrome browser).
-
-In the Program field, ensure that the Baudrate is set to 921600. Press **Connect**. Select your ESP32 (mine is called cu.usbmodem1101, but YMMV), and press **Connect**.
-
-
-Now a new field appears: **Flash Address**. In the right-hand side you can select a file. We need 4 lines filled out exactly as shown below. For each line, press **Add file.**
-
-<img src="/screenshots/flashing-tool.png">
-
-| Flash address | File |
-| -------- | ------- |
-| 0x0 | x.bootloader.bin |
-| 0x8000 | x.partitions.bin |
-| 0xe000 | boot_app0.bin |
-| 0x10000 | x.release.bin |
-
-Once this is filled out, press the **Program** button. The flashing process usually takes around 30 seconds.
-
-
-## Installing on different boards
-If you want to use a different board, the .ino file is available for you to edit and compile yourself. 
 
 
 ---
@@ -143,4 +97,58 @@ Example: ```curl --location --request POST 'http://192.168.100.37/command/next'`
 | Next | POST | <ip>/command/next |
 | Previous | POST | <ip>/command/prev |
 | Standby | POST | <ip>/command/standby |
+
+
+---
+
+
+# Technical details
+
+
+# Hardware
+Since the Data Link bus is running on 5V and an ESP32 accepts 3.3V on the GPIO pins, we need to add a little hardware. Also, Data Link is sending and receiving on the same wire, so we needed to do some trickery to get communication in both directions.
+
+I have built my prototype using:
+- 1x Lolin S3 Mini (https://www.aliexpress.com/item/1005005449219195.html)
+- 1x LM358N op-amp
+- 1x EL817 optocoupler
+- 1x 330ohm resistor
+- 1x 1K resistor
+- 2x 10K resistors
+- 1x female DIN7 (or 8) plug
+- 1x stereo jack connector
+
+Diagram:
+
+![Diagram](/schematics/breadboard_diagram.png)
+
+
+# How to install
+If you have an existing BeogramAdaptor and you want to update the board, go to _beogram.local_ and update using the OTA-release files from this repository.
+
+
+If you want to install the BeogramAdaptor from scratch on a Lolin S3 Mini board, download the release package (.zip), which includes 4 .bin files.
+
+Connect your Lolin S3 Mini board to your computer via USB, and go to https://espressif.github.io/esptool-js/ (you must use the Chrome browser).
+
+In the Program field, ensure that the Baudrate is set to 921600. Press **Connect**. Select your ESP32 (mine is called cu.usbmodem1101, but YMMV), and press **Connect**.
+
+
+Now a new field appears: **Flash Address**. In the right-hand side you can select a file. We need 4 lines filled out exactly as shown below. For each line, press **Add file.**
+
+<img src="/screenshots/flashing-tool.png">
+
+| Flash address | File |
+| -------- | ------- |
+| 0x0 | x.bootloader.bin |
+| 0x8000 | x.partitions.bin |
+| 0xe000 | boot_app0.bin |
+| 0x10000 | x.release.bin |
+
+Once this is filled out, press the **Program** button. The flashing process usually takes around 30 seconds.
+
+
+## Installing on different boards
+If you want to use a different board, the .ino file is available for you to edit and compile yourself. 
+
 
