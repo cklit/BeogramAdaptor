@@ -21,14 +21,9 @@ Basically, this is a female 7-pin DIN to male 3.5mm jack cable/adaptor with a li
 
 In the DIN-end of the cable an ESP32 is connected to the data pins from the Beogram player. The ESP32 requires a separate USB power supply.
 
-**Principle (analogue audio):**
+**Principle (analogue audio or digital audio):**
 
-![Connection](/images/connection_analogue.png)
-
-
-**Principle (digital audio):**
-
-![Connection](/images/connection_digital.png)
+<img src="/images/connection_analogue.png" width="50%"><img src="/images/connection_digital.png" width="50%">
 
 
 ---
