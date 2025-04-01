@@ -23,7 +23,7 @@ In the DIN-end of the cable an ESP32 is connected to the data pins from the Beog
 
 **Principle (analogue audio or digital audio):**
 
-<img src="/images/connection_analogue1.png" width="50%"><img src="/images/connection_digital1.png" width="50%">
+<img src="/images/connection_analogue_connection.png" width="50%"><img src="/images/connection_digital_connection.png" width="50%">
 
 
 ---
