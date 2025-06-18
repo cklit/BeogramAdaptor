@@ -31,7 +31,7 @@ In the DIN-end of the cable an ESP32 is connected to the data pins from the Beog
 
 # Setup
 
-Once it is powered on it will start a Soft AP called _Beogram_ that you can connect to (password is _password_), which allows you to add the credentials to your own WiFi network.
+Once it is powered on it will start a Soft AP called _BeogramAdaptor_ that you can connect to (password is _password_), which allows you to add the credentials to your own WiFi network.
 
 As soon as it is connected, enter _beogram.local_ in your browser.
 
