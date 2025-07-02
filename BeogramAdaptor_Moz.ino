@@ -14,7 +14,9 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.4.1"
+#define FIRMWARE_VERSION "MOZ.2025.7.2"
+
+
 
 bool debugSerial = false;
 
@@ -176,15 +178,41 @@ WebsocketsClient haloClient;
 WebServer server(80);
 
 WiFiClient wifi;
-HADevice device;
+
+byte mac[6];
+HADevice device(mac, sizeof(mac));
 HAMqtt mqtt(wifi, device);
-HAButton bgPlay("beogramPlay");
-HAButton bgNext("beogramNext");
-HAButton bgPrev("BeogramPrev");
-HAButton bgStop("beogramStop");
-HAButton bgStandby("BeogramStandby");
-HASensor bgTrack("beogramCDTrack");
-HASensor bgPlaybackState("beogramPlaybackState");
+
+String macToUnderscoreString(uint8_t* mac, size_t macLength) {
+  String macStr;
+  for (size_t i = 0; i < macLength; i++) {
+    if (i > 0) macStr += "_";
+    if (mac[i] < 0x10) macStr += "0";
+    macStr += String(mac[i], HEX);
+  }
+  macStr.toLowerCase();
+  return macStr;
+}
+
+String macSuffix = macToUnderscoreString(mac, sizeof(mac));
+
+String idPlay = "beogramPlay_" + macSuffix;
+String idNext = "beogramNext_" + macSuffix;
+String idPrev = "beogramPrev_" + macSuffix;
+String idStop = "beogramStop_" + macSuffix;
+String idStandby = "beogramStandby_" + macSuffix;
+
+String idTrack = "beogramCDTrack_" + macSuffix;
+String idPlayback = "beogramPlaybackState_" + macSuffix;
+
+HAButton bgPlay(idPlay.c_str());
+HAButton bgNext(idNext.c_str());
+HAButton bgPrev(idPrev.c_str());
+HAButton bgStop(idStop.c_str());
+HAButton bgStandby(idStandby.c_str());
+
+HASensor bgTrack(idTrack.c_str());
+HASensor bgPlaybackState(idPlayback.c_str());
 
 const char* htmlPage PROGMEM = R"rawliteral(
 <!DOCTYPE html>
