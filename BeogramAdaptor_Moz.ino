@@ -14,9 +14,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2025.7.2"
-
-
+#define FIRMWARE_VERSION "MOZ.2026.3.12"
 
 bool debugSerial = false;
 
@@ -26,7 +24,7 @@ const char* DEVICE_NAME = "Beogram";
 const char* AP_SSID = "BeogramAdaptor";
 const char* AP_PASSWORD = "password";
 
-const unsigned long reconnectInterval = 5000;
+const unsigned long reconnectInterval = 10000;
 static unsigned long wsLastReconnectAttempt = millis();  
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long mqttLastReconnectAttempt = millis();
