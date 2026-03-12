@@ -1106,7 +1106,7 @@ void checkSSEConnection() {
             connectToServer();
 
             // Implement exponential backoff (double the delay up to a max of 8s)
-            reconnectDelay = min(reconnectDelay * 2, 8000UL);
+            reconnectDelay = min(reconnectDelay * 2, 32000UL);
         }
     } else {
         // Reset delay if connection is stable
