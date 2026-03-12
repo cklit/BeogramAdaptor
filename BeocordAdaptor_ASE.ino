@@ -863,7 +863,11 @@ void processSSE(String message) {
 
     StaticJsonDocument<1024> doc;
     DeserializationError error = deserializeJson(doc, message);
-    if (error) return;
+    if (error) {
+        Serial.print("JSON parse error: ");
+        Serial.println(error.c_str());
+        return;
+    }
 
     JsonObject notification = doc["notification"];
     if (notification.isNull()) return;
