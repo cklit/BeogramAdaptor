@@ -981,9 +981,11 @@ void sendPlayAfterDelay() {
 
 void processBuffer(BeocordFeedback state) {
     if (state == PLAYING_FB) {
+        playbackState = PLAYING;  
         Serial.println("▶️ Beocord reported ON state.");
-        playbackState = PLAYING;     
-        bcPlaybackState.setValue("Playing");  
+        if (mqtt.isConnected()) {
+            bcPlaybackState.setValue("Playing");  
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }       
@@ -994,9 +996,11 @@ void processBuffer(BeocordFeedback state) {
         Serial.println("Beocord reported OFF state.");
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            bcTrack.setValue("-");
-            bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");            
-            Serial.println("⏹️ Beocord has stopped.");
+            Serial.println("⏹️ Beocord has stopped.");            
+            if (mqtt.isConnected()) {
+                bcTrack.setValue("-");
+                bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");     
+            }
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
             }                                   
@@ -1005,25 +1009,31 @@ void processBuffer(BeocordFeedback state) {
         Serial.println("Beocord reported STANDBY state.");
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            bcTrack.setValue("-");
-            bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
             Serial.println("⏹️ Beocord has turned off.");
+            if (mqtt.isConnected()) {
+                bcTrack.setValue("-");
+                bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+            }
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
             }                          
         }            
     } else if (state == EJECTED_FB) {
-        Serial.println("⏏️ Beocord tray was ejected");
         playbackState = STOPPED;
-        bcTrack.setValue("-");
-        bcPlaybackState.setValue("Ejected");          
+        Serial.println("⏏️ Beocord tray was ejected");
+        if (mqtt.isConnected()) {
+            bcTrack.setValue("-");
+            bcPlaybackState.setValue("Ejected"); 
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
         }            
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
-        bcTrack.setValue("14+");        
+        if (mqtt.isConnected()) {        
+            bcTrack.setValue("14+");  
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
         }
@@ -1037,7 +1047,9 @@ void processBuffer(BeocordFeedback state) {
         }     
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);
-        bcTrack.setValue(trackNumber);
+        if (mqtt.isConnected()) {
+            bcTrack.setValue(trackNumber);
+        }
     } 
 }
 
