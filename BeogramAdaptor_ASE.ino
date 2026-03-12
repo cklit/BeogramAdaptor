@@ -1295,9 +1295,9 @@ void setup() {
     bgPlay.setIcon("mdi:play-circle");
     bgPlay.setName("Play");
     bgNext.setIcon("mdi:skip-next-circle");
-    bgNext.setName("Wind");
+    bgNext.setName("Next");
     bgPrev.setIcon("mdi:skip-previous-circle");
-    bgPrev.setName("Rewind");  
+    bgPrev.setName("Prev");  
     bgStop.setIcon("mdi:stop-circle");
     bgStop.setName("Stop");
     bgStandby.setIcon("mdi:power-standby");
