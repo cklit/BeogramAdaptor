@@ -16,8 +16,6 @@
 #define NUMPIXELS 1
 #define FIRMWARE_VERSION "MOZ.2026.3.10"
 
-
-
 bool debugSerial = false;
 
 const int WEBSOCKET_PORT = 9339;
@@ -26,7 +24,7 @@ const char* DEVICE_NAME = "Beocord";
 const char* AP_SSID = "BeocordAdaptor";
 const char* AP_PASSWORD = "password";
 
-const unsigned long reconnectInterval = 5000;
+const unsigned long reconnectInterval = 10000;
 static unsigned long wsLastReconnectAttempt = millis();  
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long mqttLastReconnectAttempt = millis();
@@ -48,7 +46,7 @@ bool lineInActive = false;
 bool waitingForPlay = false;
 bool mqttConnected = false;
 
-enum BeogramCommand : uint8_t {
+enum BeocordCommand : uint8_t {
     PLAY = 0x15,
     STOP = 0x29,
     STANDBY = 0x16,
@@ -82,7 +80,7 @@ enum HaloUpdate {
     NONE
 };
 
-enum BeogramFeedback : uint8_t {
+enum BeocordFeedback : uint8_t {
     TRACK1 = 0x01,   
     TRACK2 = 0x02,
     TRACK3 = 0x03,
@@ -105,7 +103,7 @@ enum BeogramFeedback : uint8_t {
     UNKNOWN_STATE = 0xFF
 };
 
-BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
+BeocordFeedback identifyState(const uint8_t* sequence, size_t length) {
     if (debugSerial == true) {
         Serial.print("Identifying state for sequence: ");
         for (size_t i = 0; i < length; ++i) {
@@ -195,23 +193,23 @@ String macToUnderscoreString(uint8_t* mac, size_t macLength) {
 
 String macSuffix = macToUnderscoreString(mac, sizeof(mac));
 
-String idPlay = "beogramPlay_" + macSuffix;
-String idNext = "beogramNext_" + macSuffix;
-String idPrev = "beogramPrev_" + macSuffix;
-String idStop = "beogramStop_" + macSuffix;
-String idStandby = "beogramStandby_" + macSuffix;
+String idPlay = "beocordPlay_" + macSuffix;
+String idNext = "beocordNext_" + macSuffix;
+String idPrev = "beocordPrev_" + macSuffix;
+String idStop = "beocordStop_" + macSuffix;
+String idStandby = "beocordStandby_" + macSuffix;
 
-String idTrack = "beogramCDTrack_" + macSuffix;
-String idPlayback = "beogramPlaybackState_" + macSuffix;
+String idTrack = "beocordCDTrack_" + macSuffix;
+String idPlayback = "beocordPlaybackState_" + macSuffix;
 
-HAButton bgPlay(idPlay.c_str());
-HAButton bgNext(idNext.c_str());
-HAButton bgPrev(idPrev.c_str());
-HAButton bgStop(idStop.c_str());
-HAButton bgStandby(idStandby.c_str());
+HAButton bcPlay(idPlay.c_str());
+HAButton bcNext(idNext.c_str());
+HAButton bcPrev(idPrev.c_str());
+HAButton bcStop(idStop.c_str());
+HAButton bcStandby(idStandby.c_str());
 
-HASensor bgTrack(idTrack.c_str());
-HASensor bgPlaybackState(idPlayback.c_str());
+HASensor bcTrack(idTrack.c_str());
+HASensor bcPlaybackState(idPlayback.c_str());
 
 const char* htmlPage PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -277,7 +275,7 @@ const char* htmlPage PROGMEM = R"rawliteral(
       <button type="submit" id="halo-btn">Connect to Halo</button>
     </form>
     <label for="featureToggle" class="checkbox-label" align="center">
-      <input type="checkbox" id="featureToggle" align="center"><span class="small-text">Activate Beogram Controls when waking up Halo</span>
+      <input type="checkbox" id="featureToggle" align="center"><span class="small-text">Activate Beocord Controls when waking up Halo</span>
     </label>
     <br><hr><br>
     <h3>Home Assistant auto-discovery</h3>
@@ -720,7 +718,7 @@ void handleUpdate() {
                 "volumeAbsolute": 50,
                 "textToSpeech": {
                     "lang": "en-gb",
-                    "text": "The Beogram Adaptor is now monitoring this product"
+                    "text": "The Beocord Adaptor is now monitoring this product"
                 }
             }
             )rawliteral";
@@ -880,7 +878,7 @@ void handleStatus() {
     server.send(200, "application/json", jsonResponse);
 }
 
-void sendHexCommand(BeogramCommand command) {
+void sendHexCommand(BeocordCommand command) {
     Serial1.write(command);
     delayMicroseconds(49991);
     Serial1.write(command);
@@ -956,7 +954,7 @@ void processWebSocketMessage(const String& message) {
             if (playbackState == PLAYING) {
                 playbackState = PAUSED;
                 sendHexCommand(STOP);
-                Serial.println("⏹️ Sent STOP command to Beogram to Pause playback.");
+                Serial.println("⏹️ Sent STOP command to Beocord to Pause playback.");
                 if (haloClient.available()) {
                     sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
                 }                
@@ -970,7 +968,7 @@ void processWebSocketMessage(const String& message) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
         }
         sendHexCommand(STANDBY);
-        Serial.println("🛑 Standby command detected on websocket. Sent STBY command to Beogram");
+        Serial.println("🛑 Standby command detected on websocket. Sent STBY command to Beocord");
     } 
 
     else if (lineInActive) {
@@ -982,7 +980,7 @@ void processWebSocketMessage(const String& message) {
                     if (haloClient.available()) {
                         sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
                     } 
-                    Serial.println("▶️ Product changed state to Play from Pause or Standby. Sent PLAY command to Beogram");
+                    Serial.println("▶️ Product changed state to Play from Pause or Standby. Sent PLAY command to Beocord");
                 }         
             }
         } 
@@ -992,7 +990,7 @@ void processWebSocketMessage(const String& message) {
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play"); 
             }                
-            Serial.println("⏸️ Product changed state to Stopped. Sent STOP command to Beogram");
+            Serial.println("⏸️ Product changed state to Stopped. Sent STOP command to Beocord");
         } 
         else if (message.indexOf("\"value\":\"paused\"") != -1) {
             playbackState = PAUSED;
@@ -1000,15 +998,15 @@ void processWebSocketMessage(const String& message) {
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play"); 
             }
-            Serial.println("⏸️ Product changed state to Paused. Sent STOP command to Beogram");
+            Serial.println("⏸️ Product changed state to Paused. Sent STOP command to Beocord");
         }         
         else if (message.indexOf("\"button\":\"Next\"") != -1) {
             sendHexCommand(NEXT);
-            Serial.println("⏭️ Sent NEXT command to Beogram");
+            Serial.println("⏭️ Sent NEXT command to Beocord");
         } 
         else if (message.indexOf("\"button\":\"Previous\"") != -1) {
             sendHexCommand(PREVIOUS);
-            Serial.println("⏮️ Sent PREV command to Beogram");
+            Serial.println("⏮️ Sent PREV command to Beocord");
         }
     }
 }
@@ -1043,12 +1041,12 @@ void processRemoteWebSocketMessage(const String& message) {
             char digitChar = message[digitIndex]; // Extract digit character
 
             if (isdigit(digitChar)) { // Safer check
-                const BeogramCommand digitCommands[10] = {
+                const BeocordCommand digitCommands[10] = {
                     DIGIT0, DIGIT1, DIGIT2, DIGIT3, DIGIT4, 
                     DIGIT5, DIGIT6, DIGIT7, DIGIT8, DIGIT9
                 };
 
-                BeogramCommand digitCommand = digitCommands[digitChar - '0'];
+                BeocordCommand digitCommand = digitCommands[digitChar - '0'];
 
                 // Send OPEN_FOR_DIGIT first
                 sendHexCommand(OPEN_FOR_DIGIT);
@@ -1072,11 +1070,11 @@ void sendPlayAfterDelay() {
     }
 }
 
-void processBuffer(BeogramFeedback state) {
+void processBuffer(BeocordFeedback state) {
     if (state == PLAYING_FB) {
         Serial.println("▶️ Beocord reported ON state.");
         playbackState = PLAYING;
-        bgPlaybackState.setValue("Playing");  
+        bcPlaybackState.setValue("Playing");  
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
@@ -1087,20 +1085,20 @@ void processBuffer(BeogramFeedback state) {
         }
     } else if (state == STOPPED_FB || state == STANDBY_FB) {
         Serial.println(state == STOPPED_FB ? "Beocord reported OFF state." : "Beocord reported STANDBY state.");
-        bgTrack.setValue("-");
-        bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+        bcTrack.setValue("-");
+        bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
+            Serial.println(state == STOPPED_FB ? "⏹️ Beocord has stopped." : "⏹️ Beocord has turned off.");
             sendHttpRequest("/api/v1/playback/command/stop", "POST");
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
             }
         }
     } else if (state == EJECTED_FB) {
-        Serial.println("⏏️ Beogram tray was ejected");
-        bgTrack.setValue("-");
-        bgPlaybackState.setValue("Ejected");          
+        Serial.println("⏏️ Beocord tray was ejected");
+        bcTrack.setValue("-");
+        bcPlaybackState.setValue("Ejected");          
         playbackState = STOPPED;
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
@@ -1112,7 +1110,7 @@ void processBuffer(BeogramFeedback state) {
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
-        bgTrack.setValue("14+");
+        bcTrack.setValue("14+");
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
         }
@@ -1126,7 +1124,7 @@ void processBuffer(BeogramFeedback state) {
         } 
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);
-        bgTrack.setValue(trackNumber);
+        bcTrack.setValue(trackNumber);
 
     }
 }
@@ -1152,7 +1150,7 @@ void handleSerial1Data() {
 
         // Check if we have received 5 bytes
         if (bufferIndex == 5) {
-            BeogramFeedback state = identifyState(buffer, bufferIndex);
+            BeocordFeedback state = identifyState(buffer, bufferIndex);
             processBuffer(state);
             bufferIndex = 0;  // Reset buffer after processing
         }
@@ -1160,7 +1158,7 @@ void handleSerial1Data() {
 
     // Check if 35 ms have passed since the last byte was received
     if (millis() - lastByteTime > 55 && bufferIndex > 0) {
-        BeogramFeedback state = identifyState(buffer, bufferIndex);
+        BeocordFeedback state = identifyState(buffer, bufferIndex);
         processBuffer(state);
         bufferIndex = 0;  // Reset buffer after processing
     }
@@ -1281,15 +1279,15 @@ void handleResetWifi() {
 
 void onButtonCommand(HAButton* sender)
 {
-    if (sender == &bgPlay) {
+    if (sender == &bcPlay) {
         sendHexCommand(PLAY);  // PLAY
-    } else if (sender == &bgNext) {
+    } else if (sender == &bcNext) {
         sendHexCommand(NEXT);  // NEXT
-    } else if (sender == &bgPrev) {
+    } else if (sender == &bcPrev) {
         sendHexCommand(PREVIOUS);  // PREVIOUS
-    } else if (sender == &bgStop) {
+    } else if (sender == &bcStop) {
         sendHexCommand(STOP);  // STOP
-    } else if (sender == &bgStandby) {
+    } else if (sender == &bcStandby) {
         sendHexCommand(STANDBY);  // STANDBY
     }
 }
@@ -1327,28 +1325,28 @@ void setup() {
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
     device.enableLastWill();    
-    bgPlay.setIcon("mdi:play-circle");
-    bgPlay.setName("Play");
-    bgNext.setIcon("mdi:skip-next-circle");
-    bgNext.setName("Wind");
-    bgPrev.setIcon("mdi:skip-previous-circle");
-    bgPrev.setName("Rewind");  
-    bgStop.setIcon("mdi:stop-circle");
-    bgStop.setName("Stop");
-    bgStandby.setIcon("mdi:power-standby");
-    bgStandby.setName("Standby"); 
-    bgTrack.setIcon("mdi:music-note-eighth");
-    bgTrack.setName("Track");  
-    bgPlaybackState.setIcon("mdi:album");
-    bgPlaybackState.setName("State");
+    bcPlay.setIcon("mdi:play-circle");
+    bcPlay.setName("Play");
+    bcNext.setIcon("mdi:skip-next-circle");
+    bcNext.setName("Wind");
+    bcPrev.setIcon("mdi:skip-previous-circle");
+    bcPrev.setName("Rewind");  
+    bcStop.setIcon("mdi:stop-circle");
+    bcStop.setName("Stop");
+    bcStandby.setIcon("mdi:power-standby");
+    bcStandby.setName("Standby"); 
+    bcTrack.setIcon("mdi:music-note-eighth");
+    bcTrack.setName("Track");  
+    bcPlaybackState.setIcon("mdi:album");
+    bcPlaybackState.setName("State");
     mqtt.setDiscoveryPrefix("homeassistant");
 
 
-    bgPlay.onCommand(onButtonCommand);
-    bgNext.onCommand(onButtonCommand);
-    bgPrev.onCommand(onButtonCommand);
-    bgStop.onCommand(onButtonCommand);
-    bgStandby.onCommand(onButtonCommand);       
+    bcPlay.onCommand(onButtonCommand);
+    bcNext.onCommand(onButtonCommand);
+    bcPrev.onCommand(onButtonCommand);
+    bcStop.onCommand(onButtonCommand);
+    bcStandby.onCommand(onButtonCommand);       
 
     if (!MDNS.begin(DEVICE_NAME)) {
         Serial.println("Error setting up MDNS responder!");
@@ -1358,7 +1356,7 @@ void setup() {
     }
     Serial.println("mDNS responder started");
 
-    preferences.begin("beogramadaptor", false);
+    preferences.begin("beocordadaptor", false);
     wsIP = preferences.getString("wsIP", "");
     haloIP = preferences.getString("haloIP", "");
     haloControls = preferences.getBool("feature_enabled", false);
