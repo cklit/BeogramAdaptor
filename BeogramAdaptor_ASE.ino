@@ -15,7 +15,7 @@
 #define PIN 47
 #define NUMPIXELS 1
 #define DELAYVAL 500
-#define FIRMWARE_VERSION "ASE.2025.4.1"
+#define FIRMWARE_VERSION "ASE.2026.3.12"
 
 bool debugSerial = false; 
 
@@ -160,15 +160,42 @@ WebServer server(80);
 HTTPClient http;
 
 WiFiClient wifi;
-HADevice device;
+
+byte mac[6];
+HADevice device(mac, sizeof(mac));
 HAMqtt mqtt(wifi, device);
-HAButton bgPlay("beogramPlay");
-HAButton bgNext("beogramNext");
-HAButton bgPrev("BeogramPrev");
-HAButton bgStop("beogramStop");
-HAButton bgStandby("BeogramStandby");
-HASensor bgTrack("beogramCDTrack");
-HASensor bgPlaybackState("beogramPlaybackState");
+
+String macToUnderscoreString(uint8_t* mac, size_t macLength) {
+  String macStr;
+  for (size_t i = 0; i < macLength; i++) {
+    if (i > 0) macStr += "_";
+    if (mac[i] < 0x10) macStr += "0";
+    macStr += String(mac[i], HEX);
+  }
+  macStr.toLowerCase();
+  return macStr;
+}
+
+String macSuffix = macToUnderscoreString(mac, sizeof(mac));
+
+String idPlay = "beogramPlay_" + macSuffix;
+String idNext = "beogramNext_" + macSuffix;
+String idPrev = "beogramPrev_" + macSuffix;
+String idStop = "beogramStop_" + macSuffix;
+String idStandby = "beogramStandby_" + macSuffix;
+
+String idTrack = "beogramCDTrack_" + macSuffix;
+String idPlayback = "beogramPlaybackState_" + macSuffix;
+
+HAButton bgPlay(idPlay.c_str());
+HAButton bgNext(idNext.c_str());
+HAButton bgPrev(idPrev.c_str());
+HAButton bgStop(idStop.c_str());
+HAButton bgStandby(idStandby.c_str());
+
+HASensor bgTrack(idTrack.c_str());
+HASensor bgPlaybackState(idPlayback.c_str());
+
 
 WiFiManager wm;
 using namespace websockets;
@@ -837,7 +864,11 @@ void processSSE(String message) {
 
     StaticJsonDocument<1024> doc;
     DeserializationError error = deserializeJson(doc, message);
-    if (error) return;
+    if (error) {
+        Serial.print("JSON parse error: ");
+        Serial.println(error.c_str());
+        return;
+    }
 
     JsonObject notification = doc["notification"];
     if (notification.isNull()) return;
@@ -951,9 +982,11 @@ void sendPlayAfterDelay() {
 
 void processBuffer(BeogramFeedback state) {
     if (state == PLAYING_FB) {
+        playbackState = PLAYING;  
         Serial.println("▶️ Beogram reported ON state.");
-        playbackState = PLAYING;     
-        bgPlaybackState.setValue("Playing");  
+        if (mqtt.isConnected()) {
+            bgPlaybackState.setValue("Playing");  
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }       
@@ -964,9 +997,11 @@ void processBuffer(BeogramFeedback state) {
         Serial.println("Beogram reported OFF state.");
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            bgTrack.setValue("-");
-            bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");            
-            Serial.println("⏹️ Beogram has stopped.");
+            Serial.println("⏹️ Beogram has stopped.");            
+            if (mqtt.isConnected()) {
+                bgTrack.setValue("-");
+                bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");     
+            }
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
             }                                   
@@ -975,25 +1010,31 @@ void processBuffer(BeogramFeedback state) {
         Serial.println("Beogram reported STANDBY state.");
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            bgTrack.setValue("-");
-            bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
             Serial.println("⏹️ Beogram has turned off.");
+            if (mqtt.isConnected()) {
+                bgTrack.setValue("-");
+                bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+            }
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
             }                          
         }            
     } else if (state == EJECTED_FB) {
-        Serial.println("⏏️ Beogram tray was ejected");
         playbackState = STOPPED;
-        bgTrack.setValue("-");
-        bgPlaybackState.setValue("Ejected");          
+        Serial.println("⏏️ Beogram tray was ejected");
+        if (mqtt.isConnected()) {
+            bgTrack.setValue("-");
+            bgPlaybackState.setValue("Ejected"); 
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
         }            
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
-        bgTrack.setValue("14+");        
+        if (mqtt.isConnected()) {        
+            bgTrack.setValue("14+");  
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
         }
@@ -1007,7 +1048,9 @@ void processBuffer(BeogramFeedback state) {
         }     
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);
-        bgTrack.setValue(trackNumber);
+        if (mqtt.isConnected()) {
+            bgTrack.setValue(trackNumber);
+        }
     } 
 }
 
@@ -1064,7 +1107,7 @@ void checkSSEConnection() {
             connectToServer();
 
             // Implement exponential backoff (double the delay up to a max of 8s)
-            reconnectDelay = min(reconnectDelay * 2, 8000UL);
+            reconnectDelay = min(reconnectDelay * 2, 32000UL);
         }
     } else {
         // Reset delay if connection is stable
@@ -1252,9 +1295,9 @@ void setup() {
     bgPlay.setIcon("mdi:play-circle");
     bgPlay.setName("Play");
     bgNext.setIcon("mdi:skip-next-circle");
-    bgNext.setName("Next");
+    bgNext.setName("Wind");
     bgPrev.setIcon("mdi:skip-previous-circle");
-    bgPrev.setName("Previous");  
+    bgPrev.setName("Rewind");  
     bgStop.setIcon("mdi:stop-circle");
     bgStop.setName("Stop");
     bgStandby.setIcon("mdi:power-standby");
@@ -1263,13 +1306,14 @@ void setup() {
     bgTrack.setName("Track");  
     bgPlaybackState.setIcon("mdi:album");
     bgPlaybackState.setName("State");
-    mqtt.setDiscoveryPrefix("homeassistant");           
+    mqtt.setDiscoveryPrefix("homeassistant");
+
 
     bgPlay.onCommand(onButtonCommand);
     bgNext.onCommand(onButtonCommand);
     bgPrev.onCommand(onButtonCommand);
     bgStop.onCommand(onButtonCommand);
-    bgStandby.onCommand(onButtonCommand);  
+    bgStandby.onCommand(onButtonCommand);      
 
     if (!MDNS.begin(DEVICE_NAME)) {
         Serial.println("Error setting up MDNS responder!");
