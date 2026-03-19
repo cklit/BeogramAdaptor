@@ -1074,8 +1074,10 @@ void processBuffer(BeogramFeedback state) {
     if (state == PLAYING_FB) {
         Serial.println("▶️ Beogram reported ON state.");
         playbackState = PLAYING;
-        bgPlaybackState.setValue("Playing");  
-        bgPlaying.setState(true);
+        if (mqtt.isConnected()) {
+            bgPlaybackState.setValue("Playing");  
+            bgPlaying.setState(true);
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
@@ -1086,9 +1088,11 @@ void processBuffer(BeogramFeedback state) {
         }
     } else if (state == STOPPED_FB || state == STANDBY_FB) {
         Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
-        bgTrack.setValue("-");
-        bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
-        bgPlaying.setState(false);
+        if (mqtt.isConnected()) {
+            bgTrack.setValue("-");
+            bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+            bgPlaying.setState(false);
+        }
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
             Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
@@ -1099,9 +1103,11 @@ void processBuffer(BeogramFeedback state) {
         }
     } else if (state == EJECTED_FB) {
         Serial.println("⏏️ Beogram tray was ejected");
-        bgTrack.setValue("-");
-        bgPlaybackState.setValue("Ejected");    
-        bgPlaying.setState(false);      
+        if (mqtt.isConnected()) {
+            bgTrack.setValue("-");
+            bgPlaybackState.setValue("Ejected");    
+            bgPlaying.setState(false);     
+        }
         playbackState = STOPPED;
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
@@ -1113,7 +1119,9 @@ void processBuffer(BeogramFeedback state) {
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
-        bgTrack.setValue("14+");
+        if (mqtt.isConnected()) {
+            bgTrack.setValue("14+");
+        }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
         }
@@ -1127,7 +1135,9 @@ void processBuffer(BeogramFeedback state) {
         } 
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);
-        bgTrack.setValue(trackNumber);
+        if (mqtt.isConnected()) {
+            bgTrack.setValue(trackNumber);
+        }
 
     }
 }
