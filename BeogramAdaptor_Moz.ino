@@ -14,7 +14,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2026.3.12"
+#define FIRMWARE_VERSION "MOZ.2025.3.19"
 
 bool debugSerial = false;
 
@@ -177,8 +177,18 @@ WebServer server(80);
 
 WiFiClient wifi;
 
-byte mac[6];
-HADevice device(mac, sizeof(mac));
+byte mac[6];  
+
+char idPlay[35];
+char idNext[35];
+char idPrev[35];
+char idStop[35];
+char idStandby[35];
+char idTrack[35];
+char idPlayback[35];
+char idPlaying[35];
+
+HADevice device; 
 HAMqtt mqtt(wifi, device);
 
 String macToUnderscoreString(uint8_t* mac, size_t macLength) {
@@ -192,25 +202,14 @@ String macToUnderscoreString(uint8_t* mac, size_t macLength) {
   return macStr;
 }
 
-String macSuffix = macToUnderscoreString(mac, sizeof(mac));
-
-String idPlay = "beogramPlay_" + macSuffix;
-String idNext = "beogramNext_" + macSuffix;
-String idPrev = "beogramPrev_" + macSuffix;
-String idStop = "beogramStop_" + macSuffix;
-String idStandby = "beogramStandby_" + macSuffix;
-
-String idTrack = "beogramCDTrack_" + macSuffix;
-String idPlayback = "beogramPlaybackState_" + macSuffix;
-
-HAButton bgPlay(idPlay.c_str());
-HAButton bgNext(idNext.c_str());
-HAButton bgPrev(idPrev.c_str());
-HAButton bgStop(idStop.c_str());
-HAButton bgStandby(idStandby.c_str());
-
-HASensor bgTrack(idTrack.c_str());
-HASensor bgPlaybackState(idPlayback.c_str());
+HAButton bgPlay(idPlay); 
+HAButton bgNext(idNext);   
+HAButton bgPrev(idPrev);
+HAButton bgStop(idStop);
+HAButton bgStandby(idStandby);
+HASensor bgTrack(idTrack);
+HASensor bgPlaybackState(idPlayback);
+HABinarySensor bgPlaying(idPlaying);
 
 const char* htmlPage PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -1076,6 +1075,7 @@ void processBuffer(BeogramFeedback state) {
         Serial.println("▶️ Beogram reported ON state.");
         playbackState = PLAYING;
         bgPlaybackState.setValue("Playing");  
+        bgPlaying.setState(true);
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
@@ -1088,6 +1088,7 @@ void processBuffer(BeogramFeedback state) {
         Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
         bgTrack.setValue("-");
         bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+        bgPlaying.setState(false);
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
             Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
@@ -1099,7 +1100,8 @@ void processBuffer(BeogramFeedback state) {
     } else if (state == EJECTED_FB) {
         Serial.println("⏏️ Beogram tray was ejected");
         bgTrack.setValue("-");
-        bgPlaybackState.setValue("Ejected");          
+        bgPlaybackState.setValue("Ejected");    
+        bgPlaying.setState(false);      
         playbackState = STOPPED;
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
@@ -1319,9 +1321,21 @@ void setup() {
     } else {
         Serial.println("Connected to WiFi!");
     }
-    byte mac[6];
+
     WiFi.macAddress(mac);
+    String macSuffix = macToUnderscoreString(mac, sizeof(mac));
+
+    snprintf(idPlay,     sizeof(idPlay),     "beogramPlay_%s",     macSuffix.c_str());
+    snprintf(idNext,     sizeof(idNext),     "beogramNext_%s",     macSuffix.c_str());
+    snprintf(idPrev,     sizeof(idPrev),     "beogramPrev_%s",     macSuffix.c_str());
+    snprintf(idStop,     sizeof(idStop),     "beogramStop_%s",     macSuffix.c_str());
+    snprintf(idStandby,  sizeof(idStandby),  "beogramStandby_%s",  macSuffix.c_str());
+    snprintf(idTrack,    sizeof(idTrack),    "beogramCDTrack_%s",  macSuffix.c_str());
+    snprintf(idPlayback, sizeof(idPlayback), "beogramState_%s",    macSuffix.c_str());
+    snprintf(idPlaying,  sizeof(idPlaying),  "beogramPlaying_%s",  macSuffix.c_str());
+
     device.setUniqueId(mac, sizeof(mac));
+
     device.setName("BeogramAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
@@ -1340,6 +1354,9 @@ void setup() {
     bgTrack.setName("Track");  
     bgPlaybackState.setIcon("mdi:album");
     bgPlaybackState.setName("State");
+    bgPlaying.setDeviceClass("running");
+    bgPlaying.setName("Playing");
+    bgPlaying.setIcon("mdi:disc-player");    
     mqtt.setDiscoveryPrefix("homeassistant");
 
 
@@ -1470,7 +1487,6 @@ void setup() {
     checkMQTTConnection(true);  // Force immediate connect attempt
 
 }
-
 void loop() {
     updateLEDStatus();
     client.poll();
