@@ -179,6 +179,7 @@ WiFiClient wifi;
 
 byte mac[6];  
 
+char configUrl[25]; 
 char idPlay[35];
 char idNext[35];
 char idPrev[35];
@@ -1332,6 +1333,14 @@ void setup() {
         Serial.println("Connected to WiFi!");
     }
 
+    if (!MDNS.begin(DEVICE_NAME)) {
+        Serial.println("Error setting up MDNS responder!");
+        while (1) {
+            delay(1000);
+        }
+    }
+    Serial.println("mDNS responder started");
+
     WiFi.macAddress(mac);
     String macSuffix = macToUnderscoreString(mac, sizeof(mac));
 
@@ -1343,9 +1352,11 @@ void setup() {
     snprintf(idTrack,    sizeof(idTrack),    "beogramCDTrack_%s",  macSuffix.c_str());
     snprintf(idPlayback, sizeof(idPlayback), "beogramState_%s",    macSuffix.c_str());
     snprintf(idPlaying,  sizeof(idPlaying),  "beogramPlaying_%s",  macSuffix.c_str());
+    snprintf(configUrl,  sizeof(configUrl),  "http://%s/",         WiFi.localIP().toString().c_str());
 
     device.setUniqueId(mac, sizeof(mac));
 
+    device.setConfigurationUrl(configUrl);
     device.setName("BeogramAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
@@ -1374,15 +1385,7 @@ void setup() {
     bgNext.onCommand(onButtonCommand);
     bgPrev.onCommand(onButtonCommand);
     bgStop.onCommand(onButtonCommand);
-    bgStandby.onCommand(onButtonCommand);       
-
-    if (!MDNS.begin(DEVICE_NAME)) {
-        Serial.println("Error setting up MDNS responder!");
-        while (1) {
-            delay(1000);
-        }
-    }
-    Serial.println("mDNS responder started");
+    bgStandby.onCommand(onButtonCommand);    
 
     preferences.begin("beogramadaptor", false);
     wsIP = preferences.getString("wsIP", "");
