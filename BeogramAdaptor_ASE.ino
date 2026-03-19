@@ -1287,6 +1287,9 @@ void setup() {
     snprintf(idPlaying,  sizeof(idPlaying),  "beogramPlaying_%s",  macSuffix.c_str());
     
     device.setUniqueId(mac, sizeof(mac));
+
+    String configUrl = "http://" + WiFi.localIP().toString();
+    device.setConfigurationUrl(configUrl.c_str());    
     
     device.setName("BeogramAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
