@@ -15,7 +15,7 @@
 #define PIN 47
 #define NUMPIXELS 1
 #define DELAYVAL 500
-#define FIRMWARE_VERSION "ASE.2026.3.12"
+#define FIRMWARE_VERSION "ASE.2026.3.19_Beocord"
 
 bool debugSerial = false; 
 
@@ -80,21 +80,6 @@ enum HaloUpdate {
 };
 
 enum BeocordFeedback : uint8_t {
-    TRACK1 = 0x01,   
-    TRACK2 = 0x02,
-    TRACK3 = 0x03,
-    TRACK4 = 0x04,
-    TRACK5 = 0x05,
-    TRACK6 = 0x06,
-    TRACK7 = 0x07,
-    TRACK8 = 0x08,
-    TRACK9 = 0x09,
-    TRACK10 = 0x0A,
-    TRACK11 = 0x0B,
-    TRACK12 = 0x0C,
-    TRACK13 = 0x0D,
-    TRACK14 = 0x0E,
-    TRACK14_PLUS = 0x0F,
     PLAYING_FB = 0x9,
     STOPPED_FB = 0x69,
     STANDBY_FB = 0x3E,
@@ -112,32 +97,11 @@ BeocordFeedback identifyState(const uint8_t* sequence, size_t length) {
         Serial.print("Length: ");
         Serial.println(length);
     }
-    if (length == 5) {
-        if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
-        if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
-        if (sequence[0] == 0x78 && sequence[4] == 0x7C) return TRACK7;  
-        if (sequence[0] == 0x78 && sequence[4] == 0x7F) return TRACK13;          
-    } else if (length == 2) {
+    if (length == 2) {
         if (sequence[0] == PLAYING_FB && sequence[1] == PLAYING_FB) return PLAYING_FB;
         if (sequence[0] == STOPPED_FB && sequence[1] == STOPPED_FB) return STOPPED_FB;
         if (sequence[0] == STANDBY_FB && sequence[1] == STANDBY_FB) return STANDBY_FB;
         if (sequence[0] == EJECTED_FB && sequence[1] == EJECTED_FB) return EJECTED_FB;
-    } else if (length == 4) {
-        if (sequence[0] == 0x78 && sequence[3] == 0x77) return TRACK1;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7B) return TRACK2;
-        if (sequence[0] == 0x78 && sequence[3] == 0x73) return TRACK3;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7D) return TRACK4;    
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x75) return TRACK5;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x79) return TRACK6;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x71) return TRACK7;                        
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7E) return TRACK8;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x76) return TRACK9;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7A) return TRACK10;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x72) return TRACK11;
-        if (sequence[0] == 0x78 && sequence[2] == 0x78 && sequence[3] == 0x7C) return TRACK12;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x1E || sequence[3] == 0x74)) return TRACK13;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x78 || sequence[3] == 0xF)) return TRACK14;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x70) return TRACK14_PLUS;
     }
     return UNKNOWN_STATE;
 }
@@ -160,7 +124,17 @@ HTTPClient http;
 
 WiFiClient wifi;
 
-byte mac[6];
+byte mac[6];  
+
+char configUrl[25]; 
+char idPlay[35];
+char idNext[35];
+char idPrev[35];
+char idStop[35];
+char idStandby[35];
+char idPlayback[35];
+char idPlaying[35];
+
 HADevice device(mac, sizeof(mac));
 HAMqtt mqtt(wifi, device);
 
@@ -177,24 +151,13 @@ String macToUnderscoreString(uint8_t* mac, size_t macLength) {
 
 String macSuffix = macToUnderscoreString(mac, sizeof(mac));
 
-String idPlay = "beocordPlay_" + macSuffix;
-String idNext = "beocordNext_" + macSuffix;
-String idPrev = "beocordPrev_" + macSuffix;
-String idStop = "beocordStop_" + macSuffix;
-String idStandby = "beocordStandby_" + macSuffix;
-
-String idTrack = "beocordCDTrack_" + macSuffix;
-String idPlayback = "beocordPlaybackState_" + macSuffix;
-
-HAButton bcPlay(idPlay.c_str());
-HAButton bcNext(idNext.c_str());
-HAButton bcPrev(idPrev.c_str());
-HAButton bcStop(idStop.c_str());
-HAButton bcStandby(idStandby.c_str());
-
-HASensor bcTrack(idTrack.c_str());
-HASensor bcPlaybackState(idPlayback.c_str());
-
+HAButton bcPlay(idPlay); 
+HAButton bcNext(idNext);   
+HAButton bcPrev(idPrev);
+HAButton bcStop(idStop);
+HAButton bcStandby(idStandby);
+HASensor bcPlaybackState(idPlayback);
+HABinarySensor bcPlaying(idPlaying);
 
 WiFiManager wm;
 using namespace websockets;
@@ -992,64 +955,28 @@ void processBuffer(BeocordFeedback state) {
         if (!lineInActive) {
             forceSource();
         }
-    } else if (state == STOPPED_FB) {
-        Serial.println("Beocord reported OFF state.");
+    } else if (state == STOPPED_FB || state == STANDBY_FB) {
+        Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
+        if (mqtt.isConnected()) {
+            bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+            bcPlaying.setState(false);
+        }
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            Serial.println("⏹️ Beocord has stopped.");            
-            if (mqtt.isConnected()) {
-                bcTrack.setValue("-");
-                bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");     
-            }
-            if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
-            }                                   
-        } 
-    } else if (state == STANDBY_FB) {
-        Serial.println("Beocord reported STANDBY state.");
-        if (playbackState == PLAYING && lineInActive) {
-            playbackState = STOPPED;
-            Serial.println("⏹️ Beocord has turned off.");
-            if (mqtt.isConnected()) {
-                bcTrack.setValue("-");
-                bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
-            }
+            Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
-            }                          
-        }            
+            }
+        }       
     } else if (state == EJECTED_FB) {
         playbackState = STOPPED;
         Serial.println("⏏️ Beocord tray was ejected");
         if (mqtt.isConnected()) {
-            bcTrack.setValue("-");
             bcPlaybackState.setValue("Ejected"); 
         }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
         }            
-    } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
-        Serial.print("Track identified: ");
-        Serial.println("14+");
-        if (mqtt.isConnected()) {        
-            bcTrack.setValue("14+");  
-        }
-        if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
-        }
-    } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
-        Serial.print("Track identified: ");
-        Serial.println(state, DEC);
-        if (haloClient.available()) {
-            char subtitle[20];
-            sprintf(subtitle, "Track %d", state);
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
-        }     
-        char trackNumber[20];
-        sprintf(trackNumber, "%d", state);
-        if (mqtt.isConnected()) {
-            bcTrack.setValue(trackNumber);
-        }
     } 
 }
 
@@ -1283,10 +1210,30 @@ void setup() {
     } else {
         Serial.println("Connected to WiFi!");
     }
-
-    byte mac[6];
+    
+    if (!MDNS.begin(DEVICE_NAME)) {
+        Serial.println("Error setting up MDNS responder!");
+        while (1) {
+            delay(1000);
+        }
+    }
+    Serial.println("mDNS responder started");
+    
     WiFi.macAddress(mac);
+    String macSuffix = macToUnderscoreString(mac, sizeof(mac));
+
+    snprintf(idPlay,     sizeof(idPlay),     "beogramPlay_%s",     macSuffix.c_str());
+    snprintf(idNext,     sizeof(idNext),     "beogramNext_%s",     macSuffix.c_str());
+    snprintf(idPrev,     sizeof(idPrev),     "beogramPrev_%s",     macSuffix.c_str());
+    snprintf(idStop,     sizeof(idStop),     "beogramStop_%s",     macSuffix.c_str());
+    snprintf(idStandby,  sizeof(idStandby),  "beogramStandby_%s",  macSuffix.c_str());
+    snprintf(idPlayback, sizeof(idPlayback), "beogramState_%s",    macSuffix.c_str());
+    snprintf(idPlaying,  sizeof(idPlaying),  "beogramPlaying_%s",  macSuffix.c_str());
+    snprintf(configUrl,  sizeof(configUrl),  "http://%s/",         WiFi.localIP().toString().c_str());    
+    
     device.setUniqueId(mac, sizeof(mac));
+
+    device.setConfigurationUrl(configUrl);
     device.setName("BeocordAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
@@ -1301,10 +1248,11 @@ void setup() {
     bcStop.setName("Stop");
     bcStandby.setIcon("mdi:power-standby");
     bcStandby.setName("Standby"); 
-    bcTrack.setIcon("mdi:music-note-eighth");
-    bcTrack.setName("Track");  
     bcPlaybackState.setIcon("mdi:album");
     bcPlaybackState.setName("State");
+    bcPlaying.setDeviceClass("running");
+    bcPlaying.setName("Playing");
+    bcPlaying.setIcon("mdi:disc-player");     
     mqtt.setDiscoveryPrefix("homeassistant");
 
 
@@ -1314,13 +1262,7 @@ void setup() {
     bcStop.onCommand(onButtonCommand);
     bcStandby.onCommand(onButtonCommand);      
 
-    if (!MDNS.begin(DEVICE_NAME)) {
-        Serial.println("Error setting up MDNS responder!");
-        while (1) {
-            delay(1000);
-        }
-    }
-    Serial.println("mDNS responder started");
+
 
     preferences.begin("beocordadaptor", false);
     sseIP = preferences.getString("sseIP", "");
