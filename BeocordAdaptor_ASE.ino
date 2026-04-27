@@ -906,17 +906,20 @@ void processSSE(String message) {
 
             String sourceType = source["sourceType"]["type"].as<String>();
 
-            if (sourceType == triggerSource && !lineInActive) { //to avoid "re-activating" Line-in on SSE reconnect
+            if (sourceType == triggerSource && !lineInActive) {
                 Serial.println("✅ Line-in activated!");
                 lineInActive = true;
-                haloActionTime = millis();  // Store the current time  
+                haloActionTime = millis();
                 if (haloControls) {
                     haloUpdate = PAGE;
-                }           
-                if (playbackState != PLAYING) {
+                }
+                if (playbackState != PLAYING && playbackState != BOOT) { 
                     sendHexCommand(PLAY);
                     playbackState = PLAYING;
                     Serial.println("Sent PLAY command to Beocord");
+                } else if (playbackState == BOOT) {
+                    playbackState = STOPPED;  // Assume it's already playing, just update state
+                    Serial.println("Boot: assumed stopped, skipped PLAY command");
                 }
             } else if (sourceType != triggerSource) {
                 Serial.println("❌ Line-in deactivated!");
