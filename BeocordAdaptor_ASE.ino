@@ -952,9 +952,9 @@ void processBuffer(BeocordFeedback state) {
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }       
-        if (!lineInActive) {
-            forceSource();
-        }
+//        if (!lineInActive) {
+//            forceSource();
+//        }
     } else if (state == STOPPED_FB || state == STANDBY_FB) {
         Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
         if (mqtt.isConnected()) {
