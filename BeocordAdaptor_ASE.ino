@@ -15,7 +15,7 @@
 #define PIN 47
 #define NUMPIXELS 1
 #define DELAYVAL 500
-#define FIRMWARE_VERSION "ASE.2026.4.27_Beocord"
+#define FIRMWARE_VERSION "ASE.2026.3.19_Beocord"
 
 bool debugSerial = false; 
 
@@ -584,18 +584,6 @@ void connectToServer() {
     Serial.println("Connected to SSE stream!");
 }
 
-void setLineInSensitivity() {
-    if (sseIP.length() == 0) return;
-    String payload = "{\"lineInSettings\":{\"sensitivity\":\"disabled\"}}";
-    String url = "http://" + sseIP + ":" + String(SSE_PORT) + "/BeoDevice/lineInSettings";
-    HTTPClient http;
-    http.begin(url);
-    http.addHeader("Content-Type", "application/json");
-    int code = http.POST(payload);
-    Serial.println("Status: " + String(code));    
-    http.end();
-}
-
 void handleUpdate() {
     if (server.hasArg("sseIP")) {
         String newIP = server.arg("sseIP");
@@ -616,7 +604,6 @@ void handleUpdate() {
         server.send(200, "text/html", "<h2>IP Updated to " + sseIP + "</h2><a href='/'>Go Back</a>");
         client.stop();
         connectToServer();
-        setLineInSensitivity(); 
     } else {
         server.send(400, "text/html", "<h2>No IP Address Provided</h2><a href='/'>Go Back</a>");
     }
@@ -919,20 +906,17 @@ void processSSE(String message) {
 
             String sourceType = source["sourceType"]["type"].as<String>();
 
-            if (sourceType == triggerSource && !lineInActive) {
+            if (sourceType == triggerSource && !lineInActive) { //to avoid "re-activating" Line-in on SSE reconnect
                 Serial.println("✅ Line-in activated!");
                 lineInActive = true;
-                haloActionTime = millis();
+                haloActionTime = millis();  // Store the current time  
                 if (haloControls) {
                     haloUpdate = PAGE;
-                }
-                if (playbackState != PLAYING && playbackState != BOOT) { 
+                }           
+                if (playbackState != PLAYING) {
                     sendHexCommand(PLAY);
                     playbackState = PLAYING;
                     Serial.println("Sent PLAY command to Beocord");
-                } else if (playbackState == BOOT) {
-                    playbackState = STOPPED;  // Assume it's already stopped, just update state
-                    Serial.println("Boot: assumed stopped, skipped PLAY command");
                 }
             } else if (sourceType != triggerSource) {
                 Serial.println("❌ Line-in deactivated!");
