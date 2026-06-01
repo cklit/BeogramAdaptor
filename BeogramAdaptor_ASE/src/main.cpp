@@ -16,7 +16,7 @@
 #define PIN 47
 #define NUMPIXELS 1
 #define DELAYVAL 500
-#define FIRMWARE_VERSION "ASE.2026.5.28"
+#define FIRMWARE_VERSION "ASE.2026.6.1"
 
 bool debugSerial = false; 
 
