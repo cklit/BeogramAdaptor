@@ -38,7 +38,7 @@ As soon as it is connected, enter _beogram.local_ in your browser.
 Here you can enter the IP-address of the product you have connected the Beogram to. Press Submit to save.
 The ESP32 now will monitor the event stream from the product.
 
-<img src="/screenshots/configuration.png" width="50%"><img src="/screenshots/mqtt.png" width="50%">
+<img src="/screenshots/frontpage.png" width="50%"><img src="/screenshots/mqtt.png" width="50%">
 
 Additionally (and optionally) you can select whether the Beogram player is connected to Line-in or Optical _(ensure that your product supports optical input - may require coax to optical digital audio converter)._ <br><br>
 You can also enter the IP-address of a Beoremote Halo to get player controls. <br><br>
