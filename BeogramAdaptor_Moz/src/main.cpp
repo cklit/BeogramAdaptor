@@ -11,9 +11,18 @@
 #include <Adafruit_NeoPixel.h>
 #include <ArduinoHA.h>
 
-#define RXD2 16
-#define TXD2 17
-#define LEDPIN 47
+#ifndef LEDPIN
+#error Please define LEDPIN in platform.ini file
+#endif
+
+#ifndef RXD2
+#error Please define RXD2 in platform.ini file
+#endif
+
+#ifndef TXD2
+#error Please define TXD2 in platform.ini file
+#endif
+
 #define NUMPIXELS 1
 #define FIRMWARE_VERSION "MOZ.2026.6.1"
 
