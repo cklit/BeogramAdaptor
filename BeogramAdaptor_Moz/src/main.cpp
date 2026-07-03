@@ -30,12 +30,12 @@ bool debugSerial = false;
 
 const int WEBSOCKET_PORT = 9339;
 const int HALO_WEBSOCKET_PORT = 8080;
-const char* DEVICE_NAME = "Beogram";
-const char* AP_SSID = "BeogramAdaptor";
-const char* AP_PASSWORD = "password";
+const char *DEVICE_NAME = "Beogram";
+const char *AP_SSID = "BeogramAdaptor";
+const char *AP_PASSWORD = "password";
 
 const unsigned long reconnectInterval = 10000;
-static unsigned long wsLastReconnectAttempt = millis();  
+static unsigned long wsLastReconnectAttempt = millis();
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long mqttLastReconnectAttempt = millis();
 static unsigned long wsLastPingReceived = millis();
@@ -43,20 +43,21 @@ static unsigned long wsRemoteLastPingReceived = millis();
 static unsigned long haloLastPingReceived = millis();
 const unsigned long pingTimeout = 10000;
 
-unsigned long haloActionTime = 0;  //set millis when certain Halo state/page updates are triggered
-const unsigned long haloActionDelay = 800; //defines the delay from when haloActionTime is set until the update is sent
+unsigned long haloActionTime = 0;          // set millis when certain Halo state/page updates are triggered
+const unsigned long haloActionDelay = 800; // defines the delay from when haloActionTime is set until the update is sent
 
 unsigned long lastStartEventTime = 0;  // Track the last processed 'started' event time
-unsigned long delayPlayAfterDigit = 0; //set millis to delay PLAY command to CD player, when using digits
+unsigned long delayPlayAfterDigit = 0; // set millis to delay PLAY command to CD player, when using digits
 
 const unsigned long stateDebounceDelay = 100;
 
-bool haloControls; 
+bool haloControls;
 bool lineInActive = false;
 bool waitingForPlay = false;
 bool mqttConnected = false;
 
-enum BeogramCommand : uint8_t {
+enum BeogramCommand : uint8_t
+{
     PLAY = 0x35,
     STOP = 0x26,
     STANDBY = 0x16,
@@ -77,22 +78,25 @@ enum BeogramCommand : uint8_t {
     DIGIT0 = 0x3F
 };
 
-enum PlaybackState {
+enum PlaybackState
+{
     PLAYING,
     PAUSED,
     STOPPED,
     BOOT
 };
 
-enum HaloUpdate {
+enum HaloUpdate
+{
     CONFIG,
     STATE,
     PAGE,
     NONE
 };
 
-enum BeogramFeedback : uint8_t {
-    TRACK1 = 0x01,   
+enum BeogramFeedback : uint8_t
+{
+    TRACK1 = 0x01,
     TRACK2 = 0x02,
     TRACK3 = 0x03,
     TRACK4 = 0x04,
@@ -114,27 +118,32 @@ enum BeogramFeedback : uint8_t {
     UNKNOWN_STATE = 0xFF
 };
 
-BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
-    if (debugSerial == true) {
+BeogramFeedback identifyState(const uint8_t *sequence, size_t length)
+{
+    if (debugSerial == true)
+    {
         Serial.print("Identifying state for sequence: ");
-        for (size_t i = 0; i < length; ++i) {
+        for (size_t i = 0; i < length; ++i)
+        {
             Serial.print(sequence[i], HEX);
             Serial.print(" ");
         }
         Serial.print("Length: ");
         Serial.println(length);
     }
-    if (length == 5) {
-        if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
-        if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
-        if (sequence[0] == 0x78 && sequence[4] == 0x7C) return TRACK7;  
-        if (sequence[0] == 0x78 && sequence[4] == 0x7F) return TRACK13;          
-    } else if (length == 2) {
+
+    switch (length)
+    {
+    case 2:
+        // clang-format off
         if (sequence[0] == PLAYING_FB && sequence[1] == PLAYING_FB) return PLAYING_FB;
         if (sequence[0] == STOPPED_FB && sequence[1] == STOPPED_FB) return STOPPED_FB;
         if (sequence[0] == STANDBY_FB && sequence[1] == STANDBY_FB) return STANDBY_FB;
         if (sequence[0] == EJECTED_FB && sequence[1] == EJECTED_FB) return EJECTED_FB;
-    } else if (length == 4) {
+        // clang-format on
+        break;
+    case 4:
+        // clang-format off
         if (sequence[0] == 0x78 && sequence[3] == 0x77) return TRACK1;
         if (sequence[0] == 0x78 && sequence[3] == 0x7B) return TRACK2;
         if (sequence[0] == 0x78 && sequence[3] == 0x73) return TRACK3;
@@ -150,15 +159,30 @@ BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
         if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x1E || sequence[3] == 0x74)) return TRACK13;
         if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x78 || sequence[3] == 0xF)) return TRACK14;
         if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x70) return TRACK14_PLUS;
+        // clang-format on
+        break;
+    case 5:
+        // clang-format off
+        if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
+        if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
+        if (sequence[0] == 0x78 && sequence[4] == 0x7C) return TRACK7;  
+        if (sequence[0] == 0x78 && sequence[4] == 0x7F) return TRACK13;
+        // clang-format on
+        break;
     }
+
     return UNKNOWN_STATE;
 }
 
-bool isValidIPAddress(const String& ip) {
+bool isValidIPAddress(const String &ip)
+{
     int parts[4];
-    if (sscanf(ip.c_str(), "%d.%d.%d.%d", &parts[0], &parts[1], &parts[2], &parts[3]) == 4) {
-        for (int i = 0; i < 4; i++) {
-            if (parts[i] < 0 || parts[i] > 255) return false;
+    if (sscanf(ip.c_str(), "%d.%d.%d.%d", &parts[0], &parts[1], &parts[2], &parts[3]) == 4)
+    {
+        for (int i = 0; i < 4; i++)
+        {
+            if (parts[i] < 0 || parts[i] > 255)
+                return false;
         }
         return true;
     }
@@ -172,7 +196,7 @@ Preferences preferences;
 HTTPClient http;
 String wsIP;
 String haloIP;
-String triggerSource = "lineIn";  // default value
+String triggerSource = "lineIn"; // default value
 
 String mqttIP;
 String mqttUser;
@@ -187,9 +211,9 @@ WebServer server(80);
 
 WiFiClient wifi;
 
-byte mac[6];  
+byte mac[6];
 
-char configUrl[25]; 
+char configUrl[25];
 char idPlay[35];
 char idNext[35];
 char idPrev[35];
@@ -199,22 +223,26 @@ char idTrack[35];
 char idPlayback[35];
 char idPlaying[35];
 
-HADevice device; 
+HADevice device;
 HAMqtt mqtt(wifi, device);
 
-String macToUnderscoreString(uint8_t* mac, size_t macLength) {
-  String macStr;
-  for (size_t i = 0; i < macLength; i++) {
-    if (i > 0) macStr += "_";
-    if (mac[i] < 0x10) macStr += "0";
-    macStr += String(mac[i], HEX);
-  }
-  macStr.toLowerCase();
-  return macStr;
+String macToUnderscoreString(uint8_t *mac, size_t macLength)
+{
+    String macStr;
+    for (size_t i = 0; i < macLength; i++)
+    {
+        if (i > 0)
+            macStr += "_";
+        if (mac[i] < 0x10)
+            macStr += "0";
+        macStr += String(mac[i], HEX);
+    }
+    macStr.toLowerCase();
+    return macStr;
 }
 
-HAButton bgPlay(idPlay); 
-HAButton bgNext(idNext);   
+HAButton bgPlay(idPlay);
+HAButton bgNext(idNext);
 HAButton bgPrev(idPrev);
 HAButton bgStop(idStop);
 HAButton bgStandby(idStandby);
@@ -222,7 +250,7 @@ HASensor bgTrack(idTrack);
 HASensor bgPlaybackState(idPlayback);
 HABinarySensor bgPlaying(idPlaying);
 
-static const char* htmlPage PROGMEM = R"rawliteral(
+static const char *htmlPage PROGMEM = R"rawliteral(
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -472,7 +500,8 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     )rawliteral";
 
 // Struct to manage button update timing
-struct ButtonUpdate {
+struct ButtonUpdate
+{
     String id;
     bool pending;
     unsigned long timestamp;
@@ -480,27 +509,33 @@ struct ButtonUpdate {
 
 ButtonUpdate pendingUpdate = {"", false, 0}; // Track pending button updates
 
-void sendButtonUpdate(const char* buttonID, const char* state = nullptr, const char* title = nullptr, const char* text = nullptr, const char* subtitle = nullptr, int value = -1) {
+void sendButtonUpdate(const char *buttonID, const char *state = nullptr, const char *title = nullptr, const char *text = nullptr, const char *subtitle = nullptr, int value = -1)
+{
     JsonDocument doc;
-    
+
     doc["update"]["type"] = "button";
     doc["update"]["id"] = buttonID;
-    if (value != -1) {
+    if (value != -1)
+    {
         doc["update"]["value"] = value;
     }
-    if (state != nullptr) {
+    if (state != nullptr)
+    {
         doc["update"]["state"] = state;
     }
-    if (title != nullptr) {
+    if (title != nullptr)
+    {
         doc["update"]["title"] = title;
-    }   
-    if (subtitle != nullptr) {
+    }
+    if (subtitle != nullptr)
+    {
         doc["update"]["subtitle"] = subtitle;
-    }    
+    }
 
-    if (text != nullptr) {
+    if (text != nullptr)
+    {
         doc["update"]["content"]["text"] = text;
-    }    
+    }
 
     String output;
     serializeJson(doc, output);
@@ -508,11 +543,12 @@ void sendButtonUpdate(const char* buttonID, const char* state = nullptr, const c
     haloClient.send(output);
 }
 
-void sendPageUpdate(const char* pageID, const char* buttonID) {
+void sendPageUpdate(const char *pageID, const char *buttonID)
+{
     JsonDocument doc;
-    
+
     doc["update"]["type"] = "displaypage";
-    doc["update"]["pageid"] = pageID; 
+    doc["update"]["pageid"] = pageID;
     doc["update"]["buttonid"] = buttonID;
 
     String output;
@@ -521,12 +557,15 @@ void sendPageUpdate(const char* pageID, const char* buttonID) {
     haloClient.send(output);
 }
 
-void checkWiFiConnection() {
-    if (WiFi.status() != WL_CONNECTED) {
+void checkWiFiConnection()
+{
+    if (WiFi.status() != WL_CONNECTED)
+    {
         Serial.println("WiFi lost, attempting to reconnect...");
         WiFi.reconnect();
         unsigned long startAttemptTime = millis();
-        while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
+        while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000)
+        {
             delay(500);
             Serial.print(".");
         }
@@ -534,68 +573,96 @@ void checkWiFiConnection() {
     }
 }
 
-void checkWebSocketConnection() {
-    if (millis() - wsLastReconnectAttempt > reconnectInterval) {
+void checkWebSocketConnection()
+{
+    if (millis() - wsLastReconnectAttempt > reconnectInterval)
+    {
         Serial.println("Reconnecting product websocket...");
-        wsLastReconnectAttempt = millis();        
-        if (client.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT).c_str())) {
+        wsLastReconnectAttempt = millis();
+        if (client.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT).c_str()))
+        {
             client.send("Hi Server!");
             Serial.println("Product webSocket reconnected!");
-        } else {
+        }
+        else
+        {
             Serial.println("Product webSocket reconnection failed.");
         }
-        if (remoteClient.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str())) {
+        if (remoteClient.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str()))
+        {
             remoteClient.send("Hi Server!");
-            Serial.println("Secondary websocket reconnected!");            
-        } else {
+            Serial.println("Secondary websocket reconnected!");
+        }
+        else
+        {
             Serial.println("Remote webSocket reconnection failed.");
         }
     }
 }
 
-void checkPingWebsocket() {
-//    wsLastPingReceived = millis();
-    if (client.available() && wsIP.length() > 0) {    
-        if (millis() - wsLastPingReceived >= pingTimeout) {
+void checkPingWebsocket()
+{
+    //    wsLastPingReceived = millis();
+    if (client.available() && wsIP.length() > 0)
+    {
+        if (millis() - wsLastPingReceived >= pingTimeout)
+        {
             client.ping();
             wsLastPingReceived = millis();
         }
-    } else if (!client.available() && wsIP.length() > 0) {    
-        if (millis() - wsLastPingReceived >= pingTimeout) {
+    }
+    else if (!client.available() && wsIP.length() > 0)
+    {
+        if (millis() - wsLastPingReceived >= pingTimeout)
+        {
             client.close();
             delay(10);
-            checkWebSocketConnection();  // Attempt reconnection
+            checkWebSocketConnection(); // Attempt reconnection
         }
-    } else if (remoteClient.available() && wsIP.length() > 0) {    
-        if (millis() - wsRemoteLastPingReceived >= pingTimeout) {
+    }
+    else if (remoteClient.available() && wsIP.length() > 0)
+    {
+        if (millis() - wsRemoteLastPingReceived >= pingTimeout)
+        {
             remoteClient.ping();
             wsRemoteLastPingReceived = millis();
         }
-    } else if (!remoteClient.available() && wsIP.length() > 0) {    
-        if (millis() - wsRemoteLastPingReceived >= pingTimeout) {
+    }
+    else if (!remoteClient.available() && wsIP.length() > 0)
+    {
+        if (millis() - wsRemoteLastPingReceived >= pingTimeout)
+        {
             remoteClient.close();
             delay(10);
-            checkWebSocketConnection();  // Attempt reconnection
+            checkWebSocketConnection(); // Attempt reconnection
         }
-    }  
+    }
 
-    if (haloClient.available()) {
-        if (millis() - haloLastPingReceived >= pingTimeout) {
+    if (haloClient.available())
+    {
+        if (millis() - haloLastPingReceived >= pingTimeout)
+        {
             haloClient.ping();
             haloLastPingReceived = millis(); // Reset the timer
         }
     }
 }
 
-void checkMQTTConnection(bool forceNow = false) {
-    if (!mqtt.isConnected() && mqttIP.length() > 0) {
-        if (forceNow || millis() - mqttLastReconnectAttempt > reconnectInterval) {
+void checkMQTTConnection(bool forceNow = false)
+{
+    if (!mqtt.isConnected() && mqttIP.length() > 0)
+    {
+        if (forceNow || millis() - mqttLastReconnectAttempt > reconnectInterval)
+        {
             mqttLastReconnectAttempt = millis();
             IPAddress broker;
-            if (broker.fromString(mqttIP)) {
+            if (broker.fromString(mqttIP))
+            {
                 Serial.println(forceNow ? "⚡ Initial MQTT connect..." : "🔁 Attempting MQTT reconnect...");
                 mqtt.begin(broker, mqttUser.c_str(), mqttPassword.c_str());
-            } else {
+            }
+            else
+            {
                 Serial.println("⚠️ Invalid MQTT broker IP format (connect attempt skipped)");
             }
         }
@@ -604,100 +671,133 @@ void checkMQTTConnection(bool forceNow = false) {
     mqttConnected = mqtt.isConnected(); // Always keep it updated
 }
 
-
-void handleRoot() {
+void handleRoot()
+{
     server.send(200, "text/html", htmlPage);
 }
 
-void handleOTAUpdate() {
-    HTTPUpload& upload = server.upload();
+void handleOTAUpdate()
+{
+    HTTPUpload &upload = server.upload();
 
-    if (upload.status == UPLOAD_FILE_START) {
+    if (upload.status == UPLOAD_FILE_START)
+    {
         Serial.printf("OTA Update Start: %s\n", upload.filename.c_str());
-        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN))
+        {
             Update.printError(Serial);
         }
-    } else if (upload.status == UPLOAD_FILE_WRITE) {
+    }
+    else if (upload.status == UPLOAD_FILE_WRITE)
+    {
         Serial.printf("Writing %d bytes...\n", upload.currentSize);
-        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize)
+        {
             Update.printError(Serial);
         }
-    } else if (upload.status == UPLOAD_FILE_END) {
-        if (Update.end(true)) {
+    }
+    else if (upload.status == UPLOAD_FILE_END)
+    {
+        if (Update.end(true))
+        {
             Serial.printf("OTA Update Success! %d bytes\n", upload.totalSize);
-        } else {
+        }
+        else
+        {
             Update.printError(Serial);
         }
     }
 }
 
-void handleHttpResponse(const String& endpoint, const String& response) {
-    if (endpoint == "/api/v1/playback/state") {
+void handleHttpResponse(const String &endpoint, const String &response)
+{
+    if (endpoint == "/api/v1/playback/state")
+    {
         JsonDocument doc;
         DeserializationError error = deserializeJson(doc, response);
 
-        if (!error) {
+        if (!error)
+        {
             String source = doc["source"]["id"].as<String>();
             String state = doc["state"]["value"].as<String>();
 
-            if (source == triggerSource && state == "started" && haloClient.available()) {
+            if (source == triggerSource && state == "started" && haloClient.available())
+            {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
                 lineInActive = true;
                 playbackState = PLAYING;
                 Serial.println("Polled Playing state from product");
-            } else {
+            }
+            else
+            {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
                 Serial.println("Polled Stopped state from product");
             }
-        } else {
+        }
+        else
+        {
             Serial.println("JSON parsing failed!");
         }
     }
 }
 
-void sendHttpRequest(const String& endpoint, const String& method = "GET", const String& payload = "") {
-    if (WiFi.status() == WL_CONNECTED) {
+void sendHttpRequest(const String &endpoint, const String &method = "GET", const String &payload = "")
+{
+    if (WiFi.status() == WL_CONNECTED)
+    {
         String url = "http://" + wsIP + endpoint;
         Serial.println("Sending " + method + " request to: " + url);
 
         http.begin(url);
-        if (method == "POST") {
+        if (method == "POST")
+        {
             http.addHeader("Content-Type", "application/json");
         }
 
         int httpResponseCode;
-        if (method == "POST") {
+        if (method == "POST")
+        {
             httpResponseCode = payload.isEmpty() ? http.POST("") : http.POST(payload);
-        } else {  // Default to GET
+        }
+        else
+        { // Default to GET
             httpResponseCode = http.GET();
         }
 
         Serial.println("HTTP Response code: " + String(httpResponseCode));
 
-        if (httpResponseCode == HTTP_CODE_OK) {
+        if (httpResponseCode == HTTP_CODE_OK)
+        {
             String response = http.getString();
             handleHttpResponse(endpoint, response);
         }
 
         http.end();
-    } else {
+    }
+    else
+    {
         Serial.println("WiFi not connected, cannot send request.");
     }
 }
 
-void handleUpdate() {
-    if (server.hasArg("wsIP")) {
+void handleUpdate()
+{
+    if (server.hasArg("wsIP"))
+    {
         String newIP = server.arg("wsIP");
-        if (newIP == "") {
+        if (newIP == "")
+        {
             client.close();
             remoteClient.close();
             wsIP = newIP;
             preferences.putString("wsIP", wsIP);
-            Serial.println("Unlinked product."); 
+            Serial.println("Unlinked product.");
             return;
-        } else if (!isValidIPAddress(newIP)) {
+        }
+        else if (!isValidIPAddress(newIP))
+        {
             server.send(400, "text/html", "<h2>Invalid IP Address</h2><a href='/'>Go Back</a>");
-            Serial.println("Invalid IP Address - not saved."); 
+            Serial.println("Invalid IP Address - not saved.");
             return;
         }
         wsIP = newIP;
@@ -709,7 +809,8 @@ void handleUpdate() {
 
         server.send(200, "text/html", "<h2>IP Updated to " + wsIP + "</h2><a href='/'>Go Back</a>");
         // Only send HTTP command if WebSocket is connected
-        if (client.available()) {
+        if (client.available())
+        {
             String overlayPayload = R"rawliteral(
             {
                 "volumeAbsolute": 50,
@@ -722,23 +823,30 @@ void handleUpdate() {
 
             sendHttpRequest("/api/v1/overlay/play", "POST", overlayPayload);
         }
-    } else {
+    }
+    else
+    {
         server.send(400, "text/html", "<h2>No IP Address Provided</h2><a href='/'>Go Back</a>");
     }
 }
 
-void handleUpdateHalo() {
-    if (server.hasArg("haloIP")) {
+void handleUpdateHalo()
+{
+    if (server.hasArg("haloIP"))
+    {
         String newHaloIP = server.arg("haloIP");
-        if (newHaloIP == "") {
+        if (newHaloIP == "")
+        {
             haloClient.close();
             haloIP = newHaloIP;
             preferences.putString("haloIP", haloIP); // Store the Halo IP in preferences
-            Serial.println("Unlinked Halo."); 
+            Serial.println("Unlinked Halo.");
             return;
-        } else if (!isValidIPAddress(newHaloIP)) {
+        }
+        else if (!isValidIPAddress(newHaloIP))
+        {
             server.send(400, "text/html", "<h2>Invalid IP Address for Beoremote Halo</h2><a href='/'>Go Back</a>");
-            Serial.println("Invalid IP Address - not saved."); 
+            Serial.println("Invalid IP Address - not saved.");
             return;
         }
         haloIP = newHaloIP;
@@ -748,17 +856,22 @@ void handleUpdateHalo() {
         haloClient.close();
 
         // Now establish a new WebSocket connection to the Beoremote Halo WebSocket server
-        haloClient.connect(("ws://" + haloIP + ":8080").c_str());  // Adjust the port if needed
+        haloClient.connect(("ws://" + haloIP + ":8080").c_str()); // Adjust the port if needed
         server.send(200, "text/html", "<h2>Halo IP Updated to " + haloIP + "</h2><a href='/'>Go Back</a>");
-    } else {
+    }
+    else
+    {
         server.send(400, "text/html", "<h2>No Halo IP Address Provided</h2><a href='/'>Go Back</a>");
     }
 }
 
-void handleUpdateTriggerSource() {
-    if (server.hasArg("source")) {
+void handleUpdateTriggerSource()
+{
+    if (server.hasArg("source"))
+    {
         String newSource = server.arg("source");
-        if (newSource == "lineIn" || newSource == "spdif") {
+        if (newSource == "lineIn" || newSource == "spdif")
+        {
             triggerSource = newSource;
             preferences.putString("triggerSource", triggerSource);
             server.send(200, "text/plain", "Source updated");
@@ -768,7 +881,8 @@ void handleUpdateTriggerSource() {
     server.send(400, "text/plain", "Invalid source");
 }
 
-void handleMqttReset() {
+void handleMqttReset()
+{
     preferences.remove("mqttIP");
     preferences.remove("mqttUser");
     preferences.remove("mqttPassword");
@@ -828,8 +942,10 @@ void handleMqttReset() {
     ESP.restart();
 }
 
-void handleMqttUpdate() {
-    if (server.hasArg("ip") && server.hasArg("user") && server.hasArg("pass")) {
+void handleMqttUpdate()
+{
+    if (server.hasArg("ip") && server.hasArg("user") && server.hasArg("pass"))
+    {
         mqttIP = server.arg("ip");
         mqttUser = server.arg("user");
         mqttPassword = server.arg("pass");
@@ -887,7 +1003,9 @@ void handleMqttUpdate() {
 
         delay(1000);
         ESP.restart();
-    } else {
+    }
+    else
+    {
         server.send(400, "text/html", R"rawliteral(
             <!DOCTYPE html>
             <html lang="en">
@@ -936,7 +1054,8 @@ void handleMqttUpdate() {
     }
 }
 
-void handleMqttConfig() {
+void handleMqttConfig()
+{
     String html = R"rawliteral(
         <!DOCTYPE html>
         <html lang="en">
@@ -990,15 +1109,18 @@ void handleMqttConfig() {
             <form method="POST" action="/mqtt">
             <div class="form-group">
                 <label for="ip">Broker IP address</label>
-                <input type="text" id="ip" name="ip" placeholder="e.g. 192.168.1.10" value=")rawliteral" + mqttIP + R"rawliteral(">
+                <input type="text" id="ip" name="ip" placeholder="e.g. 192.168.1.10" value=")rawliteral" +
+                  mqttIP + R"rawliteral(">
             </div>
             <div class="form-group">
                 <label for="user">Username</label>
-                <input type="text" id="user" name="user" autocomplete="username" value=")rawliteral" + mqttUser + R"rawliteral(">
+                <input type="text" id="user" name="user" autocomplete="username" value=")rawliteral" +
+                  mqttUser + R"rawliteral(">
             </div>
             <div class="form-group" style="margin-bottom:1rem">
                 <label for="pass">Password</label>
-                <input type="password" id="pass" name="pass" autocomplete="current-password" value=")rawliteral" + mqttPassword + R"rawliteral(">
+                <input type="password" id="pass" name="pass" autocomplete="current-password" value=")rawliteral" +
+                  mqttPassword + R"rawliteral(">
             </div>
             <button type="submit" class="btn">Save settings</button>
             </form>
@@ -1024,9 +1146,10 @@ void handleMqttConfig() {
     server.send(200, "text/html", html);
 }
 
-
-void handleUpdateFeature() {
-    if (server.hasArg("enabled")) {
+void handleUpdateFeature()
+{
+    if (server.hasArg("enabled"))
+    {
         String value = server.arg("enabled");
         haloControls = (value == "true");
         preferences.putBool("feature_enabled", haloControls);
@@ -1034,27 +1157,31 @@ void handleUpdateFeature() {
     server.send(200, "text/plain", "OK");
 }
 
-void handleStatus() {
+void handleStatus()
+{
     String jsonResponse = "{";
     jsonResponse += "\"ws_ip\":\"" + wsIP + "\",";
     jsonResponse += "\"ws_connected\":" + String(client.available() ? "true" : "false") + ",";
     jsonResponse += "\"halo_ip\":\"" + haloIP + "\",";
-    jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
+    jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
-    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
-    jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
+    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";
+    jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false") + ",";
     jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";
     jsonResponse += "}";
     server.send(200, "application/json", jsonResponse);
 }
 
-void sendHexCommand(BeogramCommand command) {
+void sendHexCommand(BeogramCommand command)
+{
     Serial1.write(command);
     delayMicroseconds(49991);
     Serial1.write(command);
 }
 
-void sendConfigToHalo() {
+void sendConfigToHalo()
+{
+    // clang-format off
     String jsonMessage = "{"
         "\"configuration\": {"
             "\"version\": \"1.0.1\","
@@ -1101,120 +1228,156 @@ void sendConfigToHalo() {
             "]"
         "}"
     "}";
+    // clang-format on
 
     haloClient.send(jsonMessage);
     Serial.println("📡 Sent configuration update to Halo");
     sendHttpRequest("/api/v1/playback/state");
 }
 
-void processWebSocketMessage(const String& message) {
+void processWebSocketMessage(const String &message)
+{
     unsigned long currentTime = millis();
 
-    if (message.indexOf("\"eventType\":\"WebSocketEventSourceChange\"") != -1) {
-        if (message.indexOf("\"id\":\"" + triggerSource + "\"") != -1) {
+    if (message.indexOf("\"eventType\":\"WebSocketEventSourceChange\"") != -1)
+    {
+        if (message.indexOf("\"id\":\"" + triggerSource + "\"") != -1)
+        {
             lineInActive = true;
             Serial.println("✅ Line-in activated");
-            haloActionTime = millis();  // Store the current time  
-            if (haloControls) {
+            haloActionTime = millis(); // Store the current time
+            if (haloControls)
+            {
                 haloUpdate = PAGE;
-            }             
-        } else {
+            }
+        }
+        else
+        {
             lineInActive = false;
             Serial.println("❌ Source changed, Line-in deactivated");
-            if (playbackState == PLAYING) {
+            if (playbackState == PLAYING)
+            {
                 playbackState = PAUSED;
                 sendHexCommand(STOP);
                 Serial.println("⏹️ Sent STOP command to Beogram to Pause playback.");
-                if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
-                }                
+                if (haloClient.available())
+                {
+                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");
+                }
             }
         }
     }
 
-    else if (message.indexOf("\"value\":\"networkStandby\"") != -1) {
+    else if (message.indexOf("\"value\":\"networkStandby\"") != -1)
+    {
         playbackState = STOPPED;
-        if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
+        if (haloClient.available())
+        {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");
         }
         sendHexCommand(STANDBY);
         Serial.println("🛑 Standby command detected on websocket. Sent STBY command to Beogram");
-    } 
+    }
 
-    else if (lineInActive) {
-        if (message.indexOf("\"value\":\"started\"") != -1) {
-            if (currentTime - lastStartEventTime > stateDebounceDelay) {
+    else if (lineInActive)
+    {
+        if (message.indexOf("\"value\":\"started\"") != -1)
+        {
+            if (currentTime - lastStartEventTime > stateDebounceDelay)
+            {
                 lastStartEventTime = currentTime;
-                if (playbackState != PLAYING) {
+                if (playbackState != PLAYING)
+                {
                     sendHexCommand(PLAY);
-                    if (haloClient.available()) {
+                    if (haloClient.available())
+                    {
                         sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-                    } 
+                    }
                     Serial.println("▶️ Product changed state to Play from Pause or Standby. Sent PLAY command to Beogram");
-                }         
+                }
             }
-        } 
-        else if (message.indexOf("\"value\":\"stopped\"") != -1 && playbackState != STOPPED) {
-            playbackState = PAUSED;
-            sendHexCommand(STOP);    
-            if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play"); 
-            }                
-            Serial.println("⏸️ Product changed state to Stopped. Sent STOP command to Beogram");
-        } 
-        else if (message.indexOf("\"value\":\"paused\"") != -1) {
+        }
+        else if (message.indexOf("\"value\":\"stopped\"") != -1 && playbackState != STOPPED)
+        {
             playbackState = PAUSED;
             sendHexCommand(STOP);
-            if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play"); 
+            if (haloClient.available())
+            {
+                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
+            }
+            Serial.println("⏸️ Product changed state to Stopped. Sent STOP command to Beogram");
+        }
+        else if (message.indexOf("\"value\":\"paused\"") != -1)
+        {
+            playbackState = PAUSED;
+            sendHexCommand(STOP);
+            if (haloClient.available())
+            {
+                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
             }
             Serial.println("⏸️ Product changed state to Paused. Sent STOP command to Beogram");
-        }         
-        else if (message.indexOf("\"button\":\"Next\"") != -1) {
+        }
+        else if (message.indexOf("\"button\":\"Next\"") != -1)
+        {
             sendHexCommand(NEXT);
             Serial.println("⏭️ Sent NEXT command to Beogram");
-        } 
-        else if (message.indexOf("\"button\":\"Previous\"") != -1) {
+        }
+        else if (message.indexOf("\"button\":\"Previous\"") != -1)
+        {
             sendHexCommand(PREVIOUS);
             Serial.println("⏮️ Sent PREV command to Beogram");
         }
     }
 }
 
-void processRemoteWebSocketMessage(const String& message) {
+void processRemoteWebSocketMessage(const String &message)
+{
     if (message.indexOf("\"eventType\":\"WebSocketEventBeoRemoteButton\"") != -1 &&
-       message.indexOf("\"Type\":\"KeyPress\"") != -1 && lineInActive) {  
+        message.indexOf("\"Type\":\"KeyPress\"") != -1 && lineInActive)
+    {
 
         // Handle standard control commands
-        if (message.indexOf("\"Key\":\"Wind\"") != -1) {
+        if (message.indexOf("\"Key\":\"Wind\"") != -1)
+        {
             sendHexCommand(NEXT);
             Serial.println("⏭️ Remote command: NEXT (Wind)");
-        } else if (message.indexOf("\"Key\":\"Rewind\"") != -1) {
+        }
+        else if (message.indexOf("\"Key\":\"Rewind\"") != -1)
+        {
             sendHexCommand(PREVIOUS);
             Serial.println("⏮️ Remote command: PREV (Rewind)");
-        } else if (message.indexOf("\"Key\":\"Control/Wind\"") != -1) {
+        }
+        else if (message.indexOf("\"Key\":\"Control/Wind\"") != -1)
+        {
             sendHexCommand(NEXT);
             Serial.println("⏭️ Remote command: Control/Wind");
-        } else if (message.indexOf("\"Key\":\"Control/Rewind\"") != -1) {
+        }
+        else if (message.indexOf("\"Key\":\"Control/Rewind\"") != -1)
+        {
             sendHexCommand(PREVIOUS);
             Serial.println("⏮️ Remote command: Control/Rewind");
-        } else if (message.indexOf("\"Key\":\"Control/Stop\"") != -1) {
+        }
+        else if (message.indexOf("\"Key\":\"Control/Stop\"") != -1)
+        {
             sendHexCommand(STOP);
             Serial.println("⏹️ Remote command: Control/Stop");
-        } else if (message.indexOf("\"Key\":\"Control/Play\"") != -1) {
+        }
+        else if (message.indexOf("\"Key\":\"Control/Play\"") != -1)
+        {
             sendHexCommand(PLAY);
             Serial.println("▶️ Remote command: Control/Play");
-        } 
+        }
         // Handle digit commands
-        else if (message.indexOf("\"Key\":\"Control/Digit") != -1) {
+        else if (message.indexOf("\"Key\":\"Control/Digit") != -1)
+        {
             int digitIndex = message.indexOf("\"Key\":\"Control/Digit") + 20; // Find position of digit
-            char digitChar = message[digitIndex]; // Extract digit character
+            char digitChar = message[digitIndex];                             // Extract digit character
 
-            if (isdigit(digitChar)) { // Safer check
+            if (isdigit(digitChar))
+            { // Safer check
                 const BeogramCommand digitCommands[10] = {
-                    DIGIT0, DIGIT1, DIGIT2, DIGIT3, DIGIT4, 
-                    DIGIT5, DIGIT6, DIGIT7, DIGIT8, DIGIT9
-                };
+                    DIGIT0, DIGIT1, DIGIT2, DIGIT3, DIGIT4,
+                    DIGIT5, DIGIT6, DIGIT7, DIGIT8, DIGIT9};
 
                 BeogramCommand digitCommand = digitCommands[digitChar - '0'];
 
@@ -1232,99 +1395,128 @@ void processRemoteWebSocketMessage(const String& message) {
     }
 }
 
-void sendPlayAfterDelay() {
-    if (waitingForPlay && millis() - delayPlayAfterDigit >= 1200) {
+void sendPlayAfterDelay()
+{
+    if (waitingForPlay && millis() - delayPlayAfterDigit >= 1200)
+    {
         sendHexCommand(PLAY);
         waitingForPlay = false; // Reset flag
         Serial.println("▶️ Sent PLAY after 1200ms delay");
     }
 }
 
-void processBuffer(BeogramFeedback state) {
-    if (state == PLAYING_FB) {
+void processBuffer(BeogramFeedback state)
+{
+    if (state == PLAYING_FB)
+    {
         Serial.println("▶️ Beogram reported ON state.");
         playbackState = PLAYING;
-        if (mqtt.isConnected()) {
-            bgPlaybackState.setValue("Playing");  
+        if (mqtt.isConnected())
+        {
+            bgPlaybackState.setValue("Playing");
             bgPlaying.setState(true);
         }
-        if (haloClient.available()) {
+        if (haloClient.available())
+        {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
-        if (!lineInActive) {
+        if (!lineInActive)
+        {
             sendHttpRequest("/api/v1/playback/sources/active/" + triggerSource, "POST");
-        } else if (lineInActive) {
+        }
+        else if (lineInActive)
+        {
             sendHttpRequest("/api/v1/playback/command/play", "POST");
         }
-    } else if (state == STOPPED_FB || state == STANDBY_FB) {
+    }
+    else if (state == STOPPED_FB || state == STANDBY_FB)
+    {
         Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
-        if (mqtt.isConnected()) {
+        if (mqtt.isConnected())
+        {
             bgTrack.setValue("-");
             bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
             bgPlaying.setState(false);
         }
-        if (playbackState == PLAYING && lineInActive) {
+        if (playbackState == PLAYING && lineInActive)
+        {
             playbackState = STOPPED;
             Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
             sendHttpRequest("/api/v1/playback/command/stop", "POST");
-            if (haloClient.available()) {
+            if (haloClient.available())
+            {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
             }
         }
-    } else if (state == EJECTED_FB) {
+    }
+    else if (state == EJECTED_FB)
+    {
         Serial.println("⏏️ Beogram tray was ejected");
-        if (mqtt.isConnected()) {
+        if (mqtt.isConnected())
+        {
             bgTrack.setValue("-");
-            bgPlaybackState.setValue("Ejected");    
-            bgPlaying.setState(false);     
+            bgPlaybackState.setValue("Ejected");
+            bgPlaying.setState(false);
         }
         playbackState = STOPPED;
-        if (haloClient.available()) {
+        if (haloClient.available())
+        {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
         }
 
-        if (lineInActive) {
+        if (lineInActive)
+        {
             sendHttpRequest("/api/v1/playback/command/stop", "POST");
         }
-    } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
+    }
+    else if (state == TRACK14_PLUS && playbackState == PLAYING)
+    {
         Serial.print("Track identified: ");
         Serial.println("14+");
-        if (mqtt.isConnected()) {
+        if (mqtt.isConnected())
+        {
             bgTrack.setValue("14+");
         }
-        if (haloClient.available()) {
+        if (haloClient.available())
+        {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
         }
-    } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
+    }
+    else if (state != UNKNOWN_STATE && playbackState == PLAYING)
+    {
         Serial.print("Track identified: ");
         Serial.println(state, DEC);
-        if (haloClient.available()) {
+        if (haloClient.available())
+        {
             char subtitle[20];
             sprintf(subtitle, "Track %d", state);
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
-        } 
+        }
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);
-        if (mqtt.isConnected()) {
+        if (mqtt.isConnected())
+        {
             bgTrack.setValue(trackNumber);
         }
-
     }
 }
 
-void handleSerial1Data() {
+void handleSerial1Data()
+{
     static uint8_t buffer[5];
     static size_t bufferIndex = 0;
     static unsigned long lastByteTime = 0;
 
-    while (Serial1.available()) {
+    while (Serial1.available())
+    {
         uint8_t receivedByte = Serial1.read();
         unsigned long currentTime = millis();
 
-        if (debugSerial == true) {
-          Serial.print("Received byte: 0x");
-          Serial.println(receivedByte, HEX);        
-        }        
+        if (debugSerial == true)
+        {
+            Serial.print("Received byte: 0x");
+            Serial.println(receivedByte, HEX);
+        }
 
         // Store the received byte in the buffer
         buffer[bufferIndex++] = receivedByte;
@@ -1332,126 +1524,166 @@ void handleSerial1Data() {
         lastByteTime = currentTime;
 
         // Check if we have received 5 bytes
-        if (bufferIndex == 5) {
+        if (bufferIndex == 5)
+        {
             BeogramFeedback state = identifyState(buffer, bufferIndex);
             processBuffer(state);
-            bufferIndex = 0;  // Reset buffer after processing
+            bufferIndex = 0; // Reset buffer after processing
         }
     }
 
     // Check if 35 ms have passed since the last byte was received
-    if (millis() - lastByteTime > 55 && bufferIndex > 0) {
+    if (millis() - lastByteTime > 55 && bufferIndex > 0)
+    {
         BeogramFeedback state = identifyState(buffer, bufferIndex);
         processBuffer(state);
-        bufferIndex = 0;  // Reset buffer after processing
+        bufferIndex = 0; // Reset buffer after processing
     }
 }
 
-void updateLEDStatus() {
+void updateLEDStatus()
+{
     pixels.clear();
-    if (WiFi.status() != WL_CONNECTED) {
-        pixels.setPixelColor(0, pixels.Color(0, 2, 0));  // Red for WiFi issue
-    } else if (!client.available()) {
-        pixels.setPixelColor(0, pixels.Color(0, 0, 2));  // Blue for SSE issue
-    } else {
-        pixels.setPixelColor(0, pixels.Color(2, 0, 0));  // Green when connected to SSE
+    if (WiFi.status() != WL_CONNECTED)
+    {
+        pixels.setPixelColor(0, pixels.Color(0, 2, 0)); // Red for WiFi issue
+    }
+    else if (!client.available())
+    {
+        pixels.setPixelColor(0, pixels.Color(0, 0, 2)); // Blue for SSE issue
+    }
+    else
+    {
+        pixels.setPixelColor(0, pixels.Color(2, 0, 0)); // Green when connected to SSE
     }
     pixels.show();
 }
 
-void onMessageCallback(WebsocketsMessage message) {
+void onMessageCallback(WebsocketsMessage message)
+{
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, message.data());
 
-    if (error) {
+    if (error)
+    {
         Serial.println("JSON parsing failed");
         return;
     }
 
     // Handle button press events dynamically
-    if (doc["event"].is<JsonObject>() && doc["event"]["type"] == "button" && doc["event"]["state"] == "pressed") {
+    if (doc["event"].is<JsonObject>() && doc["event"]["type"] == "button" && doc["event"]["state"] == "pressed")
+    {
         String buttonID = doc["event"]["id"].as<String>();
         Serial.print("Halo button pressed: ");
 
-        if (buttonID == "872b4893-bfdf-4d51-bb53-b5738149fc61") {
-            if (playbackState != PLAYING) {
-              Serial.println("PLAY");
-              sendHexCommand(PLAY);
-            } else {
-              Serial.println("STOP");
-              sendHexCommand(STOP);
+        if (buttonID == "872b4893-bfdf-4d51-bb53-b5738149fc61")
+        {
+            if (playbackState != PLAYING)
+            {
+                Serial.println("PLAY");
+                sendHexCommand(PLAY);
             }
-        } else if (buttonID == "032ed0e4-c61f-4d22-af95-740741217d55") {
+            else
+            {
+                Serial.println("STOP");
+                sendHexCommand(STOP);
+            }
+        }
+        else if (buttonID == "032ed0e4-c61f-4d22-af95-740741217d55")
+        {
             Serial.println("PREV");
             sendHexCommand(PREVIOUS);
-        } else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93692") {
+        }
+        else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93692")
+        {
             Serial.println("NEXT");
             sendHexCommand(NEXT);
-        } else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93482") {
+        }
+        else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93482")
+        {
             Serial.println("STBY");
             sendHexCommand(STANDBY);
-        } else {
+        }
+        else
+        {
             Serial.println("Unknown Button");
         }
 
-        if (haloClient.available()) {
+        if (haloClient.available())
+        {
             sendButtonUpdate(pendingUpdate.id.c_str(), "inactive", nullptr, nullptr, nullptr, 0);
         }
-        
+
         // Schedule second update (active state) after 500ms
         pendingUpdate.id = buttonID;
         pendingUpdate.pending = true;
         pendingUpdate.timestamp = millis();
     }
 
-    if (haloControls && lineInActive && doc["event"].is<JsonObject>() && doc["event"]["type"] == "system" && doc["event"]["state"] == "active") {
+    if (haloControls && lineInActive && doc["event"].is<JsonObject>() && doc["event"]["type"] == "system" && doc["event"]["state"] == "active")
+    {
         haloActionTime = millis();
         haloUpdate = PAGE;
     }
 }
 
-void secondButtonUpdate() {
-    if (haloClient.available() && pendingUpdate.pending && millis() - pendingUpdate.timestamp >= haloActionDelay) {
-        sendButtonUpdate(pendingUpdate.id.c_str(), "inactive", nullptr, nullptr, nullptr,  100);
-        pendingUpdate.pending = false;  // Reset update tracker
+void secondButtonUpdate()
+{
+    if (haloClient.available() && pendingUpdate.pending && millis() - pendingUpdate.timestamp >= haloActionDelay)
+    {
+        sendButtonUpdate(pendingUpdate.id.c_str(), "inactive", nullptr, nullptr, nullptr, 100);
+        pendingUpdate.pending = false; // Reset update tracker
     }
 }
 
-void connectToHalo() {
-    haloClient.poll();    
-    if (millis() - haloLastReconnectAttempt > reconnectInterval) {
-        haloLastReconnectAttempt = millis(); 
-        if (!haloClient.available() && haloIP.length() > 0) {
+void connectToHalo()
+{
+    haloClient.poll();
+    if (millis() - haloLastReconnectAttempt > reconnectInterval)
+    {
+        haloLastReconnectAttempt = millis();
+        if (!haloClient.available() && haloIP.length() > 0)
+        {
             Serial.println("🔄 Reconnecting to Halo WebSocket at: " + haloIP);
-            if (haloClient.connect(("ws://" + haloIP + ":" + HALO_WEBSOCKET_PORT).c_str())) {
+            if (haloClient.connect(("ws://" + haloIP + ":" + HALO_WEBSOCKET_PORT).c_str()))
+            {
                 Serial.println("✅ Reconnected to Beoremote Halo WebSocket!");
                 haloClient.onMessage(onMessageCallback);
                 sendHttpRequest("/api/v1/playback/state");
-            } else {
+            }
+            else
+            {
                 Serial.println("❌ Failed to connect to Halo WebSocket.");
             }
-        } 
+        }
     }
 }
 
-void activateHaloPage() {
-    if (haloClient.available() && haloUpdate == PAGE && (millis() - haloActionTime >= haloActionDelay)) {
-        haloUpdate = NONE;  
+void activateHaloPage()
+{
+    if (haloClient.available() && haloUpdate == PAGE && (millis() - haloActionTime >= haloActionDelay))
+    {
+        haloUpdate = NONE;
         sendPageUpdate("67461a06-74b6-4114-a808-ab90e8abc03f", "872b4893-bfdf-4d51-bb53-b5738149fc61");
     }
 
-    if (haloClient.available() && haloUpdate == STATE && (millis() - haloActionTime >= haloActionDelay)) {
-        if (!lineInActive) {
+    if (haloClient.available() && haloUpdate == STATE && (millis() - haloActionTime >= haloActionDelay))
+    {
+        if (!lineInActive)
+        {
             haloUpdate = NONE;
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
-        } else {
+        }
+        else
+        {
             haloUpdate = NONE;
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
     }
 }
 
-void handleResetWifi() {
+void handleResetWifi()
+{
     server.send(200, "text/html", R"rawliteral(
         <!DOCTYPE html>
         <html lang="en">
@@ -1499,22 +1731,32 @@ void handleResetWifi() {
     ESP.restart();
 }
 
-void onButtonCommand(HAButton* sender)
+void onButtonCommand(HAButton *sender)
 {
-    if (sender == &bgPlay) {
-        sendHexCommand(PLAY);  // PLAY
-    } else if (sender == &bgNext) {
-        sendHexCommand(NEXT);  // NEXT
-    } else if (sender == &bgPrev) {
-        sendHexCommand(PREVIOUS);  // PREVIOUS
-    } else if (sender == &bgStop) {
-        sendHexCommand(STOP);  // STOP
-    } else if (sender == &bgStandby) {
-        sendHexCommand(STANDBY);  // STANDBY
+    if (sender == &bgPlay)
+    {
+        sendHexCommand(PLAY); // PLAY
+    }
+    else if (sender == &bgNext)
+    {
+        sendHexCommand(NEXT); // NEXT
+    }
+    else if (sender == &bgPrev)
+    {
+        sendHexCommand(PREVIOUS); // PREVIOUS
+    }
+    else if (sender == &bgStop)
+    {
+        sendHexCommand(STOP); // STOP
+    }
+    else if (sender == &bgStandby)
+    {
+        sendHexCommand(STANDBY); // STANDBY
     }
 }
 
-void setup() {
+void setup()
+{
     Serial.begin(115200);
     Serial1.begin(320, SERIAL_7N1, RXD2, TXD2, true);
 
@@ -1525,25 +1767,33 @@ void setup() {
     WiFi.mode(WIFI_STA);
 
     bool res = wm.autoConnect(AP_SSID, AP_PASSWORD);
-    if (!res) {
+    if (!res)
+    {
         Serial.println("Failed to connect to WiFi. Retrying...");
-        for (int i = 0; i < 5; i++) {
+        for (int i = 0; i < 5; i++)
+        {
             Serial.println("Retrying WiFi...");
             WiFi.begin();
             delay(5000);
-            if (WiFi.status() == WL_CONNECTED) break;
+            if (WiFi.status() == WL_CONNECTED)
+                break;
         }
-        if (WiFi.status() != WL_CONNECTED) {
+        if (WiFi.status() != WL_CONNECTED)
+        {
             Serial.println("Could not connect to WiFi. Restarting ESP32...");
             ESP.restart();
         }
-    } else {
+    }
+    else
+    {
         Serial.println("Connected to WiFi!");
     }
 
-    if (!MDNS.begin(DEVICE_NAME)) {
+    if (!MDNS.begin(DEVICE_NAME))
+    {
         Serial.println("Error setting up MDNS responder!");
-        while (1) {
+        while (1)
+        {
             delay(1000);
         }
     }
@@ -1552,6 +1802,7 @@ void setup() {
     WiFi.macAddress(mac);
     String macSuffix = macToUnderscoreString(mac, sizeof(mac));
 
+    // clang-format off
     snprintf(idPlay,     sizeof(idPlay),     "beogramPlay_%s",     macSuffix.c_str());
     snprintf(idNext,     sizeof(idNext),     "beogramNext_%s",     macSuffix.c_str());
     snprintf(idPrev,     sizeof(idPrev),     "beogramPrev_%s",     macSuffix.c_str());
@@ -1561,38 +1812,38 @@ void setup() {
     snprintf(idPlayback, sizeof(idPlayback), "beogramState_%s",    macSuffix.c_str());
     snprintf(idPlaying,  sizeof(idPlaying),  "beogramPlaying_%s",  macSuffix.c_str());
     snprintf(configUrl,  sizeof(configUrl),  "http://%s/",         WiFi.localIP().toString().c_str());
+    // clang-format on
 
-    device.setUniqueId((const byte*)macSuffix.c_str(), macSuffix.length());
+    device.setUniqueId((const byte *)macSuffix.c_str(), macSuffix.length());
     device.setConfigurationUrl(configUrl);
     device.setName("BeogramAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
-    device.enableLastWill();    
+    device.enableLastWill();
     bgPlay.setIcon("mdi:play-circle");
     bgPlay.setName("Play");
     bgNext.setIcon("mdi:skip-next-circle");
     bgNext.setName("Next");
     bgPrev.setIcon("mdi:skip-previous-circle");
-    bgPrev.setName("Previous");  
+    bgPrev.setName("Previous");
     bgStop.setIcon("mdi:stop-circle");
     bgStop.setName("Stop");
     bgStandby.setIcon("mdi:power-standby");
-    bgStandby.setName("Standby"); 
+    bgStandby.setName("Standby");
     bgTrack.setIcon("mdi:music-note-eighth");
-    bgTrack.setName("Track");  
+    bgTrack.setName("Track");
     bgPlaybackState.setIcon("mdi:album");
     bgPlaybackState.setName("State");
     bgPlaying.setDeviceClass("running");
     bgPlaying.setName("Playing");
-    bgPlaying.setIcon("mdi:disc-player");    
+    bgPlaying.setIcon("mdi:disc-player");
     mqtt.setDiscoveryPrefix("homeassistant");
-
 
     bgPlay.onCommand(onButtonCommand);
     bgNext.onCommand(onButtonCommand);
     bgPrev.onCommand(onButtonCommand);
     bgStop.onCommand(onButtonCommand);
-    bgStandby.onCommand(onButtonCommand);    
+    bgStandby.onCommand(onButtonCommand);
 
     preferences.begin("beogramadaptor", false);
     wsIP = preferences.getString("wsIP", "");
@@ -1603,8 +1854,10 @@ void setup() {
     mqttPassword = preferences.getString("mqttPassword", "");
     triggerSource = preferences.getString("triggerSource", "lineIn");
 
-    client.onMessage([](WebsocketsMessage msg) { processWebSocketMessage(msg.data()); });
-    client.onEvent([](WebsocketsEvent event, String data) {
+    client.onMessage([](WebsocketsMessage msg)
+                     { processWebSocketMessage(msg.data()); });
+    client.onEvent([](WebsocketsEvent event, String data)
+                   {
         if (event == WebsocketsEvent::ConnectionOpened) {
             wsLastPingReceived = millis();
             Serial.println("Websocket connected");
@@ -1612,17 +1865,18 @@ void setup() {
             Serial.println("Websocket closed");
         } else if (event == WebsocketsEvent::GotPing || event == WebsocketsEvent::GotPong) {
             wsLastPingReceived = millis();
-        }
-    });
+        } });
 
-    if (wsIP.length() > 0) {
+    if (wsIP.length() > 0)
+    {
         client.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT).c_str());
     }
 
+    remoteClient.onMessage([](WebsocketsMessage msg)
+                           { processRemoteWebSocketMessage(msg.data()); });
 
-    remoteClient.onMessage([](WebsocketsMessage msg) { processRemoteWebSocketMessage(msg.data()); });
-
-    remoteClient.onEvent([](WebsocketsEvent event, String data) {
+    remoteClient.onEvent([](WebsocketsEvent event, String data)
+                         {
         if (event == WebsocketsEvent::ConnectionOpened) {
             Serial.println("Secondary websocket connected");
             wsRemoteLastPingReceived = millis();
@@ -1630,15 +1884,15 @@ void setup() {
             Serial.println("Secondary websocket closed");
         } else if (event == WebsocketsEvent::GotPing || event == WebsocketsEvent::GotPong) {
             wsRemoteLastPingReceived = millis();
-        }
-    });
-    if (wsIP.length() > 0) {
-        remoteClient.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str());  
+        } });
+    if (wsIP.length() > 0)
+    {
+        remoteClient.connect(("ws://" + wsIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str());
     }
 
-    
-    haloClient.onMessage(onMessageCallback); 
-    haloClient.onEvent([](WebsocketsEvent event, String data) {
+    haloClient.onMessage(onMessageCallback);
+    haloClient.onEvent([](WebsocketsEvent event, String data)
+                       {
         if (event == WebsocketsEvent::ConnectionOpened) {
             haloLastPingReceived = millis();
             Serial.println("Halo Websocket connected");
@@ -1647,10 +1901,10 @@ void setup() {
             Serial.println("Halo Websocket closed");
         } else if (event == WebsocketsEvent::GotPing || event == WebsocketsEvent::GotPong) {
             haloLastPingReceived = millis();
-        }
-    });
-  
-    if (haloIP.length() > 0) {
+        } });
+
+    if (haloIP.length() > 0)
+    {
         haloClient.connect(("ws://" + haloIP + ":" + HALO_WEBSOCKET_PORT).c_str());
     }
 
@@ -1662,30 +1916,30 @@ void setup() {
     server.on("/mqtt", HTTP_POST, handleMqttUpdate);
     server.on("/mqtt/reset", HTTP_GET, handleMqttReset);
 
-    server.on("/command/play", HTTP_POST, []() {
+    server.on("/command/play", HTTP_POST, []()
+              {
         sendHexCommand(PLAY);  // PLAY
-        server.send(200, "application/json", "{\"status\":\"Play command sent\"}");
-    });
+        server.send(200, "application/json", "{\"status\":\"Play command sent\"}"); });
 
-    server.on("/command/stop", HTTP_POST, []() {
+    server.on("/command/stop", HTTP_POST, []()
+              {
         sendHexCommand(STOP);  // STOP
-        server.send(200, "application/json", "{\"status\":\"Stop command sent\"}");
-    });
+        server.send(200, "application/json", "{\"status\":\"Stop command sent\"}"); });
 
-    server.on("/command/next", HTTP_POST, []() {
+    server.on("/command/next", HTTP_POST, []()
+              {
         sendHexCommand(NEXT);  // NEXT
-        server.send(200, "application/json", "{\"status\":\"Next command sent\"}");
-    });
+        server.send(200, "application/json", "{\"status\":\"Next command sent\"}"); });
 
-    server.on("/command/prev", HTTP_POST, []() {
+    server.on("/command/prev", HTTP_POST, []()
+              {
         sendHexCommand(PREVIOUS);  // PREVIOUS
-        server.send(200, "application/json", "{\"status\":\"Previous command sent\"}");
-    });
+        server.send(200, "application/json", "{\"status\":\"Previous command sent\"}"); });
 
-    server.on("/command/standby", HTTP_POST, []() {
+    server.on("/command/standby", HTTP_POST, []()
+              {
         sendHexCommand(STANDBY);  // STANDBY
-        server.send(200, "application/json", "{\"status\":\"Standby command sent\"}");
-    });
+        server.send(200, "application/json", "{\"status\":\"Standby command sent\"}"); });
 
     server.on("/", handleRoot);
     server.on("/update", HTTP_GET, handleUpdate);
@@ -1693,26 +1947,27 @@ void setup() {
     server.on("/update-feature", HTTP_GET, handleUpdateFeature);
 
     server.on("/status", handleStatus);
-    server.on("/update-ota", HTTP_POST, []() {
+    server.on("/update-ota", HTTP_POST, []()
+              {
         server.send(200, "text/plain", (Update.hasError()) ? "Update Failed!" : "Update Successful! Rebooting...");
         delay(1000);
-        ESP.restart();
-    }, handleOTAUpdate);
+        ESP.restart(); }, handleOTAUpdate);
     server.begin();
 
     client.send("Hi Server!");
 
     MDNS.addService("http", "tcp", 80);
 
-    checkMQTTConnection(true);  // Force immediate connect attempt
-
+    checkMQTTConnection(true); // Force immediate connect attempt
 }
-void loop() {
+
+void loop()
+{
     updateLEDStatus();
     client.poll();
-    remoteClient.poll();  
+    remoteClient.poll();
     checkWiFiConnection();
-    connectToHalo();    
+    connectToHalo();
     checkPingWebsocket();
     handleSerial1Data();
     server.handleClient();
@@ -1721,16 +1976,20 @@ void loop() {
     activateHaloPage();
     mqtt.loop();
     checkMQTTConnection();
-    if (Serial.available() > 0) {
+    if (Serial.available() > 0)
+    {
         String input = Serial.readStringUntil('\n');
         input.trim();
-        
-        if (input == "debug 1") {
+
+        if (input == "debug 1")
+        {
             debugSerial = true;
             Serial.println("Debug mode enabled");
-        } else if (input == "debug 0") {
+        }
+        else if (input == "debug 0")
+        {
             debugSerial = false;
             Serial.println("Debug mode disabled");
         }
-    }    
+    }
 }
