@@ -1,0 +1,10 @@
+[wokwi]
+version = 1
+gdbServerPort=3333
+elf = ".pio/build/wokwi/firmware.elf"
+firmware = ".pio/build/wokwi/firmware.bin"
+
+# Forward http://localhost:8180 to port 80 on the simulated ESP32:
+[[net.forward]]
+from = "localhost:8180"
+to = "target:80"

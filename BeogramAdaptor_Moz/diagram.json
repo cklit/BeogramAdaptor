@@ -1,0 +1,64 @@
+{
+  "version": 1,
+  "author": "MarLoe",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-xiao-esp32-s3",
+      "id": "esp",
+      "top": 0,
+      "left": 0,
+      "attrs": {}
+    },
+    {
+      "type": "wokwi-neopixel",
+      "id": "rgb1",
+      "top": 15,
+      "left": 85,
+      "attrs": {}
+    }
+  ],
+  "connections": [
+    [
+      "esp:TX",
+      "$serialMonitor:RX",
+      "",
+      []
+    ],
+    [
+      "esp:RX",
+      "$serialMonitor:TX",
+      "",
+      []
+    ],
+    [
+      "esp:D10",
+      "rgb1:DIN",
+      "green",
+      [
+        "h57.56",
+        "v-28.23"
+      ]
+    ],
+    [
+      "esp:5V",
+      "rgb1:VDD",
+      "red",
+      [
+        "h0"
+      ]
+    ],
+    [
+      "esp:GND",
+      "rgb1:VSS",
+      "black",
+      [
+        "h19.16",
+        "v10.17",
+        "h28.8",
+        "v-8.7"
+      ]
+    ]
+  ],
+  "dependencies": {}
+}
