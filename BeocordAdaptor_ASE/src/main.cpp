@@ -15,44 +15,40 @@
 #define TXD2 17
 #define PIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "ASE.2026.7.5"
+#define FIRMWARE_VERSION "ASE.2026.7.5_Beocord"
 
-bool debugSerial = false; 
+bool debugSerial = false;
 
 const int SSE_PORT = 8080;
 const int HALO_WEBSOCKET_PORT = 8080;
-const char* DEVICE_NAME = "Beogram";
-const char* AP_SSID = "BeogramAdaptor";
+const char* DEVICE_NAME = "Beocord";
+const char* AP_SSID = "BeocordAdaptor";
 const char* AP_PASSWORD = "password";
 
 unsigned long lastReconnectAttempt = 0;
-unsigned long reconnectDelay = 1000; // Start with 1 second
+unsigned long reconnectDelay = 1000;
 const unsigned long reconnectInterval = 5000;
 
 const unsigned long pingTimeout = 10000;
-unsigned long haloActionTime = 0;  //set millis when certain Halo state/page updates are triggered
-
-const unsigned long haloActionDelay = 800; //defines the delay from when haloActionTime is set until the update is sent
+unsigned long haloActionTime = 0;
+const unsigned long haloActionDelay = 800;
 
 static unsigned long mqttLastReconnectAttempt = millis();
-
-unsigned long delayPlayAfterDigit = 0; //set millis to delay PLAY command to CD player, when using digits
+unsigned long delayPlayAfterDigit = 0;
 static unsigned long haloLastReconnectAttempt = millis();
 static unsigned long haloLastPingReceived = millis();
 
-bool haloControls; 
+bool haloControls;
 bool lineInActive = false;
 bool waitingForPlay = false;
 bool mqttConnected = false;
 
-enum BeogramCommand : uint8_t {
-    PLAY = 0x35,
-    STOP = 0x26,
+enum BeocordCommand : uint8_t {
+    PLAY = 0x15,
+    STOP = 0x29,
     STANDBY = 0x16,
-    NEXT = 0x2B,
-    PREVIOUS = 0x18,
-    WIND = 0x1A,
-    REWIND = 0x3A,
+    NEXT = 0x39,
+    PREVIOUS = 0x05,
     OPEN_FOR_DIGIT = 0x66,
     DIGIT1 = 0x1F,
     DIGIT2 = 0x2F,
@@ -80,30 +76,15 @@ enum HaloUpdate {
     NONE
 };
 
-enum BeogramFeedback : uint8_t {
-    TRACK1 = 0x01,   
-    TRACK2 = 0x02,
-    TRACK3 = 0x03,
-    TRACK4 = 0x04,
-    TRACK5 = 0x05,
-    TRACK6 = 0x06,
-    TRACK7 = 0x07,
-    TRACK8 = 0x08,
-    TRACK9 = 0x09,
-    TRACK10 = 0x0A,
-    TRACK11 = 0x0B,
-    TRACK12 = 0x0C,
-    TRACK13 = 0x0D,
-    TRACK14 = 0x0E,
-    TRACK14_PLUS = 0x0F,
-    PLAYING_FB = 0x1E,
-    STOPPED_FB = 0x46,
-    STANDBY_FB = 0x2E,
+enum BeocordFeedback : uint8_t {
+    PLAYING_FB = 0x9,
+    STOPPED_FB = 0x69,
+    STANDBY_FB = 0x3E,
     EJECTED_FB = 0x76,
     UNKNOWN_STATE = 0xFF
 };
 
-BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
+BeocordFeedback identifyState(const uint8_t* sequence, size_t length) {
     if (debugSerial == true) {
         Serial.print("Identifying state for sequence: ");
         for (size_t i = 0; i < length; ++i) {
@@ -113,39 +94,18 @@ BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
         Serial.print("Length: ");
         Serial.println(length);
     }
-    if (length == 5) {
-        if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
-        if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
-        if (sequence[0] == 0x78 && sequence[4] == 0x7C) return TRACK7;  
-        if (sequence[0] == 0x78 && sequence[4] == 0x7F) return TRACK13;          
-    } else if (length == 2) {
+    if (length == 2) {
         if (sequence[0] == PLAYING_FB && sequence[1] == PLAYING_FB) return PLAYING_FB;
         if (sequence[0] == STOPPED_FB && sequence[1] == STOPPED_FB) return STOPPED_FB;
         if (sequence[0] == STANDBY_FB && sequence[1] == STANDBY_FB) return STANDBY_FB;
         if (sequence[0] == EJECTED_FB && sequence[1] == EJECTED_FB) return EJECTED_FB;
-    } else if (length == 4) {
-        if (sequence[0] == 0x78 && sequence[3] == 0x77) return TRACK1;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7B) return TRACK2;
-        if (sequence[0] == 0x78 && sequence[3] == 0x73) return TRACK3;
-        if (sequence[0] == 0x78 && sequence[3] == 0x7D) return TRACK4;    
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x75) return TRACK5;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x79) return TRACK6;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x71) return TRACK7;                        
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7E) return TRACK8;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x76) return TRACK9;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7A) return TRACK10;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x72) return TRACK11;
-        if (sequence[0] == 0x78 && sequence[2] == 0x78 && sequence[3] == 0x7C) return TRACK12;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x1E || sequence[3] == 0x74)) return TRACK13;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x78 || sequence[3] == 0xF)) return TRACK14;
-        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x70) return TRACK14_PLUS;
     }
     return UNKNOWN_STATE;
 }
 
 String sseIP;
 String haloIP;
-String triggerSource = "LINE IN";  // default value
+String triggerSource = "LINE IN";
 String mqttIP;
 String mqttUser;
 String mqttPassword;
@@ -157,43 +117,40 @@ WiFiClient client;
 Preferences preferences;
 WebServer server(80);
 
-
 WiFiClient wifi;
 
-byte mac[6];  
+byte mac[6];
 
-char configUrl[25]; 
+char configUrl[25];
 char idPlay[35];
 char idNext[35];
 char idPrev[35];
 char idStop[35];
 char idStandby[35];
-char idTrack[35];
 char idPlayback[35];
 char idPlaying[35];
 
-HADevice device; 
+HADevice device;
 HAMqtt mqtt(wifi, device);
 
 String macToUnderscoreString(uint8_t* mac, size_t macLength) {
-  String macStr;
-  for (size_t i = 0; i < macLength; i++) {
-    if (i > 0) macStr += "_";
-    if (mac[i] < 0x10) macStr += "0";
-    macStr += String(mac[i], HEX);
-  }
-  macStr.toLowerCase();
-  return macStr;
+    String macStr;
+    for (size_t i = 0; i < macLength; i++) {
+        if (i > 0) macStr += "_";
+        if (mac[i] < 0x10) macStr += "0";
+        macStr += String(mac[i], HEX);
+    }
+    macStr.toLowerCase();
+    return macStr;
 }
 
-HAButton bgPlay(idPlay); 
-HAButton bgNext(idNext);   
-HAButton bgPrev(idPrev);
-HAButton bgStop(idStop);
-HAButton bgStandby(idStandby);
-HASensor bgTrack(idTrack);
-HASensor bgPlaybackState(idPlayback);
-HABinarySensor bgPlaying(idPlaying);
+HAButton bcPlay(idPlay);
+HAButton bcNext(idNext);
+HAButton bcPrev(idPrev);
+HAButton bcStop(idStop);
+HAButton bcStandby(idStandby);
+HASensor bcPlaybackState(idPlayback);
+HABinarySensor bcPlaying(idPlaying);
 
 WiFiManager wm;
 using namespace websockets;
@@ -216,7 +173,7 @@ const char* htmlPage PROGMEM = R"rawliteral(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Beogram Adaptor</title>
+  <title>Beocord Adaptor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -288,8 +245,8 @@ const char* htmlPage PROGMEM = R"rawliteral(
 <body>
 <div class="page">
   <div class="page-title">
-    <i class="ti ti-disc"></i>
-    <h1>Beogram Adaptor</h1>
+    <i class="ti ti-device-cassette"></i>
+    <h1>Beocord Adaptor</h1>
   </div>
 
   <div class="card">
@@ -465,48 +422,29 @@ struct ButtonUpdate {
     unsigned long timestamp;
 };
 
-ButtonUpdate pendingUpdate = {"", false, 0}; // Track pending button updates
+ButtonUpdate pendingUpdate = {"", false, 0};
 
 void sendButtonUpdate(const char* buttonID, const char* state = nullptr, const char* title = nullptr, const char* text = nullptr, const char* subtitle = nullptr, int value = -1) {
     JsonDocument doc;
-    
     doc["update"]["type"] = "button";
     doc["update"]["id"] = buttonID;
-    if (value != -1) {
-        doc["update"]["value"] = value;
-    }
-    if (state != nullptr) {
-        doc["update"]["state"] = state;
-    }
-    if (title != nullptr) {
-        doc["update"]["title"] = title;
-    }   
-    if (subtitle != nullptr) {
-        doc["update"]["subtitle"] = subtitle;
-    }    
-
-    if (text != nullptr) {
-        doc["update"]["content"]["text"] = text;
-    }    
-
+    if (value != -1) doc["update"]["value"] = value;
+    if (state != nullptr) doc["update"]["state"] = state;
+    if (title != nullptr) doc["update"]["title"] = title;
+    if (subtitle != nullptr) doc["update"]["subtitle"] = subtitle;
+    if (text != nullptr) doc["update"]["content"]["text"] = text;
     String output;
     serializeJson(doc, output);
-
-    // Assuming you have a function to send the update string, e.g., sendUpdateToServer
     haloClient.send(output);
 }
 
 void sendPageUpdate(const char* pageID, const char* buttonID) {
     JsonDocument doc;
-    
     doc["update"]["type"] = "displaypage";
-    doc["update"]["pageid"] = pageID; 
+    doc["update"]["pageid"] = pageID;
     doc["update"]["buttonid"] = buttonID;
-
     String output;
     serializeJson(doc, output);
-
-    // Assuming you have a function to send the update string, e.g., sendUpdateToServer
     haloClient.send(output);
 }
 
@@ -520,11 +458,10 @@ void checkWiFiConnection() {
 }
 
 void checkPingWebsocket() {
-//    wsLastPingReceived = millis();
     if (haloClient.available()) {
         if (millis() - haloLastPingReceived >= pingTimeout) {
             haloClient.ping();
-            haloLastPingReceived = millis(); // Reset the timer
+            haloLastPingReceived = millis();
         }
     }
 }
@@ -542,8 +479,7 @@ void checkMQTTConnection(bool forceNow = false) {
             }
         }
     }
-
-    mqttConnected = mqtt.isConnected(); // Always keep it updated
+    mqttConnected = mqtt.isConnected();
 }
 
 void handleRoot() {
@@ -552,17 +488,12 @@ void handleRoot() {
 
 void handleOTAUpdate() {
     HTTPUpload& upload = server.upload();
-
     if (upload.status == UPLOAD_FILE_START) {
         Serial.printf("OTA Update Start: %s\n", upload.filename.c_str());
-        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) {
-            Update.printError(Serial);
-        }
+        if (!Update.begin(UPDATE_SIZE_UNKNOWN)) Update.printError(Serial);
     } else if (upload.status == UPLOAD_FILE_WRITE) {
         Serial.printf("Writing %d bytes...\n", upload.currentSize);
-        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) {
-            Update.printError(Serial);
-        }
+        if (Update.write(upload.buf, upload.currentSize) != upload.currentSize) Update.printError(Serial);
     } else if (upload.status == UPLOAD_FILE_END) {
         if (Update.end(true)) {
             Serial.printf("OTA Update Success! %d bytes\n", upload.totalSize);
@@ -571,11 +502,12 @@ void handleOTAUpdate() {
         }
     }
 }
+
 void forceSource() {
     if (WiFi.status() == WL_CONNECTED) {
         String payload = "{\"sourceType\":{\"type\":\"" + triggerSource + "\"}}";
         String url = "http://" + sseIP + ":" + String(SSE_PORT) + "/BeoZone/Zone/ActiveSourceType";
-        Serial.println("Activating Line-In on the product.");  
+        Serial.println("Activating Line-In on the product.");
         HTTPClient http;
         http.begin(url);
         http.addHeader("Content-Type", "application/json");
@@ -586,22 +518,18 @@ void forceSource() {
 }
 
 void connectToServer() {
-    if (client.connected()) return;  // Avoid reconnecting if already connected
-
+    if (client.connected()) return;
     Serial.printf("Connecting to SSE stream: %s\n", sseIP.c_str());
-    client.stop();  // Ensure the previous client is closed
-
+    client.stop();
     if (!client.connect(sseIP.c_str(), SSE_PORT)) {
         Serial.println("Connection to server failed!");
         return;
     }
-
     client.println("GET /BeoNotify/Notifications HTTP/1.1");
     client.println("Host: " + sseIP + ":" + String(SSE_PORT));
     client.println("Accept: text/event-stream");
     client.println("Connection: keep-alive");
     client.println();
-
     Serial.println("Connected to SSE stream!");
 }
 
@@ -612,16 +540,15 @@ void handleUpdate() {
             client.stop();
             sseIP = newIP;
             preferences.putString("sseIP", sseIP);
-            Serial.println("Unlinked product."); 
+            Serial.println("Unlinked product.");
             return;
         } else if (!isValidIPAddress(newIP)) {
             server.send(400, "text/html", "<h2>Invalid IP Address</h2><a href='/'>Go Back</a>");
-            Serial.println("Invalid IP Address - not saved.");             
+            Serial.println("Invalid IP Address - not saved.");
             return;
         }
         sseIP = newIP;
         preferences.putString("sseIP", sseIP);
-
         server.send(200, "text/html", "<h2>IP Updated to " + sseIP + "</h2><a href='/'>Go Back</a>");
         client.stop();
         connectToServer();
@@ -636,22 +563,18 @@ void handleUpdateHalo() {
         if (newHaloIP == "") {
             haloClient.close();
             haloIP = newHaloIP;
-            preferences.putString("haloIP", haloIP); // Store the Halo IP in preferences
-            Serial.println("Unlinked Halo."); 
+            preferences.putString("haloIP", haloIP);
+            Serial.println("Unlinked Halo.");
             return;
         } else if (!isValidIPAddress(newHaloIP)) {
             server.send(400, "text/html", "<h2>Invalid IP Address for Beoremote Halo</h2><a href='/'>Go Back</a>");
-            Serial.println("Invalid IP Address - not saved."); 
+            Serial.println("Invalid IP Address - not saved.");
             return;
         }
         haloIP = newHaloIP;
-        preferences.putString("haloIP", haloIP); // Store the Halo IP in preferences
-
-        // If there is an existing connection, close it first
+        preferences.putString("haloIP", haloIP);
         haloClient.close();
-
-        // Now establish a new WebSocket connection to the Beoremote Halo WebSocket server
-        haloClient.connect(("ws://" + haloIP + ":8080").c_str());  // Adjust the port if needed
+        haloClient.connect(("ws://" + haloIP + ":8080").c_str());
         server.send(200, "text/html", "<h2>Halo IP Updated to " + haloIP + "</h2><a href='/'>Go Back</a>");
     } else {
         server.send(400, "text/html", "<h2>No Halo IP Address Provided</h2><a href='/'>Go Back</a>");
@@ -675,11 +598,9 @@ void handleMqttReset() {
     preferences.remove("mqttIP");
     preferences.remove("mqttUser");
     preferences.remove("mqttPassword");
-
     mqttIP = "";
     mqttUser = "";
     mqttPassword = "";
-
     server.send(200, "text/html", R"rawliteral(
         <!DOCTYPE html>
         <html lang="en">
@@ -710,15 +631,9 @@ void handleMqttReset() {
         </head>
         <body>
         <div class="page">
-        <div class="page-title">
-            <i class="ti ti-smart-home"></i>
-            <h1>Home Assistant</h1>
-        </div>
+        <div class="page-title"><i class="ti ti-smart-home"></i><h1>Home Assistant</h1></div>
         <div class="card">
-            <div class="card-header">
-            <i class="ti ti-trash"></i>
-            <h2>MQTT settings cleared</h2>
-            </div>
+            <div class="card-header"><i class="ti ti-trash"></i><h2>MQTT settings cleared</h2></div>
             <p class="sub">Restarting to apply changes&hellip;</p>
             <a href="/mqtt" class="btn"><i class="ti ti-arrow-left" style="font-size:14px"></i>Back to MQTT</a>
         </div>
@@ -726,7 +641,6 @@ void handleMqttReset() {
         </body>
         </html>
         )rawliteral");
-
     delay(1000);
     ESP.restart();
 }
@@ -736,11 +650,9 @@ void handleMqttUpdate() {
         mqttIP = server.arg("ip");
         mqttUser = server.arg("user");
         mqttPassword = server.arg("pass");
-
         preferences.putString("mqttIP", mqttIP);
         preferences.putString("mqttUser", mqttUser);
         preferences.putString("mqttPassword", mqttPassword);
-
         server.send(200, "text/html", R"rawliteral(
             <!DOCTYPE html>
             <html lang="en">
@@ -771,15 +683,9 @@ void handleMqttUpdate() {
             </head>
             <body>
             <div class="page">
-            <div class="page-title">
-                <i class="ti ti-smart-home"></i>
-                <h1>Home Assistant</h1>
-            </div>
+            <div class="page-title"><i class="ti ti-smart-home"></i><h1>Home Assistant</h1></div>
             <div class="card">
-                <div class="card-header">
-                <i class="ti ti-circle-check"></i>
-                <h2>Settings saved</h2>
-                </div>
+                <div class="card-header"><i class="ti ti-circle-check"></i><h2>Settings saved</h2></div>
                 <p class="sub">Restarting to apply changes&hellip;</p>
                 <a href="/mqtt" class="btn"><i class="ti ti-arrow-left" style="font-size:14px"></i>Back to MQTT</a>
             </div>
@@ -787,7 +693,6 @@ void handleMqttUpdate() {
             </body>
             </html>
             )rawliteral");
-
         delay(1000);
         ESP.restart();
     } else {
@@ -820,15 +725,9 @@ void handleMqttUpdate() {
             </head>
             <body>
             <div class="page">
-            <div class="page-title">
-                <i class="ti ti-smart-home"></i>
-                <h1>Home Assistant</h1>
-            </div>
+            <div class="page-title"><i class="ti ti-smart-home"></i><h1>Home Assistant</h1></div>
             <div class="card">
-                <div class="card-header">
-                <i class="ti ti-circle-x"></i>
-                <h2>Missing parameters</h2>
-                </div>
+                <div class="card-header"><i class="ti ti-circle-x"></i><h2>Missing parameters</h2></div>
                 <p class="sub">Please fill in all fields and try again.</p>
                 <a href="/mqtt" class="btn"><i class="ti ti-arrow-left" style="font-size:14px"></i>Back to MQTT</a>
             </div>
@@ -877,17 +776,11 @@ void handleMqttConfig() {
             .back-link{display:flex;align-items:center;gap:6px;font-size:13px;color:#666;text-decoration:none}
             .back-link:hover{color:#111}
             @media(prefers-color-scheme:dark){.back-link{color:#aaa}.back-link:hover{color:#eee}}
-            .status-label{font-size:13px;color:#666}
-            @media(prefers-color-scheme:dark){.status-label{color:#aaa}}
         </style>
         </head>
         <body>
         <div class="page">
-        <div class="page-title">
-            <i class="ti ti-smart-home"></i>
-            <h1>Home Assistant</h1>
-        </div>
-
+        <div class="page-title"><i class="ti ti-smart-home"></i><h1>Home Assistant</h1></div>
         <div class="card">
             <div class="card-header"><i class="ti ti-server"></i><h2>MQTT broker</h2></div>
             <form method="POST" action="/mqtt">
@@ -910,7 +803,6 @@ void handleMqttConfig() {
             <button type="submit" class="btn btn-danger">Reset MQTT settings</button>
             </form>
         </div>
-
         <a href="/" class="card back-link">
             <i class="ti ti-arrow-left" style="font-size:16px"></i>
             Back to main page
@@ -940,20 +832,19 @@ void handleStatus() {
     String jsonResponse = "{";
     jsonResponse += "\"sse_ip\":\"" + sseIP + "\",";
     jsonResponse += "\"sse_connected\":";
-    jsonResponse += client.connected() ? "true" : "false";  //sse-client
+    jsonResponse += client.connected() ? "true" : "false";
     jsonResponse += ",";
     jsonResponse += "\"halo_ip\":\"" + haloIP + "\",";
-    jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
+    jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
-    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
-    jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
-    jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";            
+    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";
+    jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false") + ",";
+    jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";
     jsonResponse += "}";
-
     server.send(200, "application/json", jsonResponse);
 }
 
-void sendHexCommand(BeogramCommand command) {
+void sendHexCommand(BeocordCommand command) {
     Serial1.write(command);
     delayMicroseconds(49991);
     Serial1.write(command);
@@ -966,7 +857,7 @@ void sendConfigToHalo() {
             "\"id\": \"ae32d6dd-3300-4725-a6a0-2df6b5f8326f\","
             "\"pages\": ["
                 "{"
-                    "\"title\": \"Beogram\","
+                    "\"title\": \"Beocord\","
                     "\"id\": \"67461a06-74b6-4114-a808-ab90e8abc03f\","
                     "\"buttons\": ["
                         "{"
@@ -992,21 +883,12 @@ void sendConfigToHalo() {
                             "\"value\": 100,"
                             "\"state\": \"inactive\","
                             "\"content\": { \"text\": \"Next\" }"
-//                        "},"
-//                        "{"
-//                            "\"id\": \"03481fcc-e2cc-47ba-bcae-6152bbf93482\","
-//                            "\"title\": \"\","
-//                            "\"subtitle\": \"\","
-//                            "\"value\": 100,"
-//                            "\"state\": \"inactive\","
-//                            "\"content\": { \"text\": \"Stby\" }"
                         "}"
                     "]"
                 "}"
             "]"
         "}"
     "}";
-
     haloClient.send(jsonMessage);
     Serial.println("📡 Sent configuration update to Halo");
     haloUpdate = STATE;
@@ -1016,7 +898,6 @@ void processSSE(String message) {
     if (message.startsWith("data: ")) {
         message = message.substring(6);
     }
-
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, message);
     if (error) {
@@ -1024,58 +905,53 @@ void processSSE(String message) {
         Serial.println(error.c_str());
         return;
     }
-
     JsonObject notification = doc["notification"];
     if (notification.isNull()) return;
-
     String type = notification["type"].as<String>();
     JsonObject data = notification["data"];
     if (data.isNull()) return;
 
-    // Handle CONTROL commands
     if (type == "COMMAND") {
         String category = data["category"].as<String>();
         String key = data["key"].as<String>();
         String event = data["event"].as<String>();
-        
         if (lineInActive && category == "Control" && event == "KeyPress") {
             if (key == "Play") {
                 Serial.println("✅ Received Control/Play!");
                 playbackState = PLAYING;
                 sendHexCommand(PLAY);
-                Serial.println("Sent PLAY command to Beogram");
+                Serial.println("Sent PLAY command to Beocord");
                 if (haloClient.available()) {
                     sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-                } 
+                }
             } else if (key == "Stop") {
                 Serial.println("✅ Received Control/Stop!");
                 playbackState = PAUSED;
                 sendHexCommand(STOP);
                 if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play"); 
-                }                
-                Serial.println("Sent STOP command to Beogram");
+                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
+                }
+                Serial.println("Sent STOP command to Beocord");
             } else if (key == "Wind") {
                 Serial.println("✅ Received Control/Wind!");
                 sendHexCommand(NEXT);
-                Serial.println("Sent NEXT command to Beogram");
+                Serial.println("Sent NEXT command to Beocord");
             } else if (key == "Rewind") {
                 Serial.println("✅ Received Control/Rewind!");
                 sendHexCommand(PREVIOUS);
-                Serial.println("Sent PREV command to Beogram");
+                Serial.println("Sent PREV command to Beocord");
             } else if (key.length() == 1 && isDigit(key[0])) {
-                const BeogramCommand digitCommands[10] = {
-                    DIGIT0, DIGIT1, DIGIT2, DIGIT3, DIGIT4, DIGIT5, DIGIT6, DIGIT7, DIGIT8, DIGIT9
+                const BeocordCommand digitCommands[10] = {
+                    DIGIT0, DIGIT1, DIGIT2, DIGIT3, DIGIT4,
+                    DIGIT5, DIGIT6, DIGIT7, DIGIT8, DIGIT9
                 };
-                BeogramCommand digitCommand = digitCommands[key[0] - '0'];
+                BeocordCommand digitCommand = digitCommands[key[0] - '0'];
                 sendHexCommand(OPEN_FOR_DIGIT);
-                delay(50); 
+                delay(50);
                 sendHexCommand(digitCommand);
-
-                // Start the non-blocking delay
                 delayPlayAfterDigit = millis();
                 waitingForPlay = true;
-                Serial.printf("🔢 Sent Digit %c\n", key[0]);               
+                Serial.printf("🔢 Sent Digit %c\n", key[0]);
             }
         }
     }
@@ -1087,40 +963,35 @@ void processSSE(String message) {
             playbackState = STOPPED;
             sendHexCommand(STANDBY);
             if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
-            }                    
-            Serial.println("Sent STBY command to Beogram");
+                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");
+            }
+            Serial.println("Sent STBY command to Beocord");
         } else {
             JsonObject primaryExperience = data["primaryExperience"];
             if (primaryExperience.isNull()) return;
-
             JsonObject source = primaryExperience["source"];
             if (source.isNull()) return;
-
             String sourceType = source["sourceType"]["type"].as<String>();
-
-            if (sourceType == triggerSource && !lineInActive) { //to avoid "re-activating" Line-in on SSE reconnect
+            if (sourceType == triggerSource && !lineInActive) {
                 Serial.println("✅ Line-in activated!");
                 lineInActive = true;
-                haloActionTime = millis();  // Store the current time  
-                if (haloControls) {
-                    haloUpdate = PAGE;
-                }           
+                haloActionTime = millis();
+                if (haloControls) haloUpdate = PAGE;
                 if (playbackState != PLAYING) {
                     sendHexCommand(PLAY);
                     playbackState = PLAYING;
-                    Serial.println("Sent PLAY command to Beogram");
+                    Serial.println("Sent PLAY command to Beocord");
                 }
             } else if (sourceType != triggerSource) {
                 Serial.println("❌ Line-in deactivated!");
                 lineInActive = false;
                 if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
-                }                             
+                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");
+                }
                 if (playbackState == PLAYING) {
                     playbackState = PAUSED;
-                    sendHexCommand(STOP);    
-                    Serial.println("Sent STOP command to Beogram to Pause playback.");
+                    sendHexCommand(STOP);
+                    Serial.println("Sent STOP command to Beocord to Pause playback.");
                 }
             }
         }
@@ -1129,74 +1000,48 @@ void processSSE(String message) {
 
 void sendPlayAfterDelay() {
     if (waitingForPlay && millis() - delayPlayAfterDigit >= 1200) {
-        sendHexCommand(PLAY);           
-        waitingForPlay = false; // Reset flag
+        sendHexCommand(PLAY);
+        waitingForPlay = false;
         Serial.println("▶️ Sent PLAY after 1200ms delay");
     }
 }
 
-void processBuffer(BeogramFeedback state) {
+void processBuffer(BeocordFeedback state) {
     if (state == PLAYING_FB) {
-        playbackState = PLAYING;  
-        Serial.println("▶️ Beogram reported ON state.");
+        playbackState = PLAYING;
+        Serial.println("▶️ Beocord reported ON state.");
         if (mqtt.isConnected()) {
-            bgPlaybackState.setValue("Playing");
-            bgPlaying.setState(true);
+            bcPlaybackState.setValue("Playing");
+            bcPlaying.setState(true);
         }
         if (haloClient.available()) {
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-        }       
-        if (!lineInActive) {
-            forceSource();
         }
+        if (!lineInActive) forceSource();
     } else if (state == STOPPED_FB || state == STANDBY_FB) {
-        Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
+        Serial.println(state == STOPPED_FB ? "Beocord reported OFF state." : "Beocord reported STANDBY state.");
         if (mqtt.isConnected()) {
-            bgTrack.setValue("-");
-            bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
-            bgPlaying.setState(false);
+            bcPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+            bcPlaying.setState(false);
         }
         if (playbackState == PLAYING && lineInActive) {
             playbackState = STOPPED;
-            Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
+            Serial.println(state == STOPPED_FB ? "⏹️ Beocord has stopped." : "⏹️ Beocord has turned off.");
             if (haloClient.available()) {
                 sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
             }
-        }        
+        }
     } else if (state == EJECTED_FB) {
         playbackState = STOPPED;
-        Serial.println("⏏️ Beogram tray was ejected");
+        Serial.println("⏏️ Beocord tray was ejected");
         if (mqtt.isConnected()) {
-            bgTrack.setValue("-");
-            bgPlaybackState.setValue("Ejected"); 
-            bgPlaying.setState(false);    
+            bcPlaybackState.setValue("Ejected");
+            bcPlaying.setState(false);
         }
         if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
-        }            
-    } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
-        Serial.print("Track identified: ");
-        Serial.println("14+");
-        if (mqtt.isConnected()) {        
-            bgTrack.setValue("14+");  
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");
         }
-        if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
-        }
-    } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
-        Serial.print("Track identified: ");
-        Serial.println(state, DEC);
-        if (haloClient.available()) {
-            char subtitle[20];
-            sprintf(subtitle, "Track %d", state);
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
-        }     
-        char trackNumber[20];
-        sprintf(trackNumber, "%d", state);
-        if (mqtt.isConnected()) {
-            bgTrack.setValue(trackNumber);
-        }
-    } 
+    }
 }
 
 void handleSerial1Data() {
@@ -1207,62 +1052,45 @@ void handleSerial1Data() {
     while (Serial1.available()) {
         uint8_t receivedByte = Serial1.read();
         unsigned long currentTime = millis();
-
         if (debugSerial == true) {
-          Serial.print("Received byte: 0x");
-          Serial.println(receivedByte, HEX);        
+            Serial.print("Received byte: 0x");
+            Serial.println(receivedByte, HEX);
         }
-
-        // Store the received byte in the buffer
         buffer[bufferIndex++] = receivedByte;
-
         lastByteTime = currentTime;
-
-        // Check if we have received 5 bytes
         if (bufferIndex == 5) {
-            BeogramFeedback state = identifyState(buffer, bufferIndex);
+            BeocordFeedback state = identifyState(buffer, bufferIndex);
             processBuffer(state);
-            bufferIndex = 0;  // Reset buffer after processing
+            bufferIndex = 0;
         }
     }
-
-    // Check if 35 ms have passed since the last byte was received
     if (millis() - lastByteTime > 55 && bufferIndex > 0) {
-        BeogramFeedback state = identifyState(buffer, bufferIndex);
+        BeocordFeedback state = identifyState(buffer, bufferIndex);
         processBuffer(state);
-        bufferIndex = 0;  // Reset buffer after processing
+        bufferIndex = 0;
     }
 }
-
 
 void checkSSEConnection() {
     if (!client.connected()) {
         unsigned long now = millis();
-
-        // Ensure Wi-Fi is connected before attempting SSE reconnect
         if (WiFi.status() != WL_CONNECTED) {
             Serial.println("Wi-Fi disconnected. Waiting for reconnection...");
             return;
         }
-
-        // Wait for the delay before retrying
         if (now - lastReconnectAttempt >= reconnectDelay) {
             Serial.println("SSE stream lost. Reconnecting...");
             lastReconnectAttempt = now;
             connectToServer();
-
-            // Implement exponential backoff (double the delay up to a max of 8s)
             reconnectDelay = min(reconnectDelay * 2, 8000UL);
         }
     } else {
-        // Reset delay if connection is stable
         reconnectDelay = 1000;
     }
 }
 
 void readSSE() {
     static String lineBuffer = "";
-
     while (client.available()) {
         char c = client.read();
         if (c == '\n') {
@@ -1278,69 +1106,51 @@ void readSSE() {
 }
 
 void onMessageCallback(WebsocketsMessage message) {
-    //Serial.println("Message from Halo: " + message.data());
-
     JsonDocument doc;
     DeserializationError error = deserializeJson(doc, message.data());
-
     if (error) {
         Serial.println("JSON parsing failed");
         return;
     }
-
-    // Handle button press events dynamically
     if (doc["event"].is<JsonObject>() && doc["event"]["type"] == "button" && doc["event"]["state"] == "pressed") {
         String buttonID = doc["event"]["id"].as<String>();
         Serial.print("Halo button pressed: ");
-
         if (buttonID == "872b4893-bfdf-4d51-bb53-b5738149fc61") {
-            if (playbackState != PLAYING) {
-              Serial.println("PLAY");
-              sendHexCommand(PLAY);
-            } else {
-              Serial.println("STOP");
-              sendHexCommand(STOP);
-            }
+            if (playbackState != PLAYING) { Serial.println("PLAY"); sendHexCommand(PLAY); }
+            else { Serial.println("STOP"); sendHexCommand(STOP); }
         } else if (buttonID == "032ed0e4-c61f-4d22-af95-740741217d55") {
-            Serial.println("PREV");
-            sendHexCommand(PREVIOUS);
+            Serial.println("PREV"); sendHexCommand(PREVIOUS);
         } else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93692") {
-            Serial.println("NEXT");
-            sendHexCommand(NEXT);
+            Serial.println("NEXT"); sendHexCommand(NEXT);
         } else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93482") {
-            Serial.println("STBY");
-            sendHexCommand(STANDBY);
+            Serial.println("STBY"); sendHexCommand(STANDBY);
         } else {
             Serial.println("Unknown Button");
         }
-
         if (haloClient.available()) {
             sendButtonUpdate(pendingUpdate.id.c_str(), "inactive", nullptr, nullptr, nullptr, 0);
         }
-        
-        // Schedule second update (active state) after 500ms
         pendingUpdate.id = buttonID;
         pendingUpdate.pending = true;
         pendingUpdate.timestamp = millis();
     }
-
     if (haloControls && lineInActive && doc["event"].is<JsonObject>() && doc["event"]["type"] == "system" && doc["event"]["state"] == "active") {
-        haloActionTime = millis();  // Store the current time
+        haloActionTime = millis();
         haloUpdate = PAGE;
     }
-}    
+}
 
 void secondButtonUpdate() {
     if (haloClient.available() && pendingUpdate.pending && millis() - pendingUpdate.timestamp >= haloActionDelay) {
-        sendButtonUpdate(pendingUpdate.id.c_str(), "inactive", nullptr, nullptr, nullptr,  100);
-        pendingUpdate.pending = false;  // Reset update tracker
+        sendButtonUpdate(pendingUpdate.id.c_str(), "inactive", nullptr, nullptr, nullptr, 100);
+        pendingUpdate.pending = false;
     }
 }
 
 void connectToHalo() {
-    haloClient.poll();    
+    haloClient.poll();
     if (millis() - haloLastReconnectAttempt > reconnectInterval) {
-        haloLastReconnectAttempt = millis(); 
+        haloLastReconnectAttempt = millis();
         if (!haloClient.available() && haloIP.length() > 0) {
             Serial.println("🔄 Reconnecting to Halo WebSocket at: " + haloIP);
             if (haloClient.connect(("ws://" + haloIP + ":" + HALO_WEBSOCKET_PORT).c_str())) {
@@ -1349,22 +1159,20 @@ void connectToHalo() {
             } else {
                 Serial.println("❌ Failed to connect to Halo WebSocket.");
             }
-        } 
+        }
     }
 }
 
 void activateHaloPage() {
     if (haloClient.available() && haloUpdate == PAGE && (millis() - haloActionTime >= haloActionDelay)) {
-        haloUpdate = NONE;  
+        haloUpdate = NONE;
         sendPageUpdate("67461a06-74b6-4114-a808-ab90e8abc03f", "872b4893-bfdf-4d51-bb53-b5738149fc61");
     }
-
     if (haloClient.available() && haloUpdate == STATE && (millis() - haloActionTime >= haloActionDelay)) {
+        haloUpdate = NONE;
         if (!lineInActive) {
-            haloUpdate = NONE;
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
         } else {
-            haloUpdate = NONE;
             sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
         }
     }
@@ -1374,34 +1182,27 @@ void handleResetWifi() {
     server.send(200, "application/json", "{\"Connection\":\"WiFi has been reset. Restarting in AP mode.\"}");
     wm.resetSettings();
     delay(1000);
-    ESP.restart(); 
+    ESP.restart();
 }
 
 void updateLEDStatus() {
     pixels.clear();
     if (WiFi.status() != WL_CONNECTED) {
-        pixels.setPixelColor(0, pixels.Color(0, 2, 0));  // Red for WiFi issue
+        pixels.setPixelColor(0, pixels.Color(0, 2, 0));
     } else if (!client.connected()) {
-        pixels.setPixelColor(0, pixels.Color(0, 0, 2));  // Blue for SSE issue
+        pixels.setPixelColor(0, pixels.Color(0, 0, 2));
     } else {
-        pixels.setPixelColor(0, pixels.Color(2, 0, 0));  // Green for everything else
+        pixels.setPixelColor(0, pixels.Color(2, 0, 0));
     }
     pixels.show();
 }
 
-void onButtonCommand(HAButton* sender)
-{
-    if (sender == &bgPlay) {
-        sendHexCommand(PLAY);  // PLAY
-    } else if (sender == &bgNext) {
-        sendHexCommand(NEXT);  // NEXT
-    } else if (sender == &bgPrev) {
-        sendHexCommand(PREVIOUS);  // PREVIOUS
-    } else if (sender == &bgStop) {
-        sendHexCommand(STOP);  // STOP
-    } else if (sender == &bgStandby) {
-        sendHexCommand(STANDBY);  // STANDBY
-    }
+void onButtonCommand(HAButton* sender) {
+    if (sender == &bcPlay) sendHexCommand(PLAY);
+    else if (sender == &bcNext) sendHexCommand(NEXT);
+    else if (sender == &bcPrev) sendHexCommand(PREVIOUS);
+    else if (sender == &bcStop) sendHexCommand(STOP);
+    else if (sender == &bcStandby) sendHexCommand(STANDBY);
 }
 
 void setup() {
@@ -1410,7 +1211,7 @@ void setup() {
 
     pixels.begin();
     pixels.clear();
-    pixels.setPixelColor(0, pixels.Color(0, 2, 0));  // Red for WiFi issue
+    pixels.setPixelColor(0, pixels.Color(0, 2, 0));
 
     WiFi.mode(WIFI_STA);
 
@@ -1432,68 +1233,55 @@ void setup() {
     }
 
     if (!MDNS.begin(DEVICE_NAME)) {
-    Serial.println("Error setting up MDNS responder!");
-    while (1) {
-        delay(1000);
-        }
+        Serial.println("Error setting up MDNS responder!");
+        while (1) { delay(1000); }
     }
     Serial.println("mDNS responder started");
 
     WiFi.macAddress(mac);
     String macSuffix = macToUnderscoreString(mac, sizeof(mac));
 
-    snprintf(idPlay,     sizeof(idPlay),     "beogramPlay_%s",     macSuffix.c_str());
-    snprintf(idNext,     sizeof(idNext),     "beogramNext_%s",     macSuffix.c_str());
-    snprintf(idPrev,     sizeof(idPrev),     "beogramPrev_%s",     macSuffix.c_str());
-    snprintf(idStop,     sizeof(idStop),     "beogramStop_%s",     macSuffix.c_str());
-    snprintf(idStandby,  sizeof(idStandby),  "beogramStandby_%s",  macSuffix.c_str());
-    snprintf(idTrack,    sizeof(idTrack),    "beogramCDTrack_%s",  macSuffix.c_str());
-    snprintf(idPlayback, sizeof(idPlayback), "beogramState_%s",    macSuffix.c_str());
-    snprintf(idPlaying,  sizeof(idPlaying),  "beogramPlaying_%s",  macSuffix.c_str());
+    snprintf(idPlay,     sizeof(idPlay),     "beocordPlay_%s",     macSuffix.c_str());
+    snprintf(idNext,     sizeof(idNext),     "beocordNext_%s",     macSuffix.c_str());
+    snprintf(idPrev,     sizeof(idPrev),     "beocordPrev_%s",     macSuffix.c_str());
+    snprintf(idStop,     sizeof(idStop),     "beocordStop_%s",     macSuffix.c_str());
+    snprintf(idStandby,  sizeof(idStandby),  "beocordStandby_%s",  macSuffix.c_str());
+    snprintf(idPlayback, sizeof(idPlayback), "beocordState_%s",    macSuffix.c_str());
+    snprintf(idPlaying,  sizeof(idPlaying),  "beocordPlaying_%s",  macSuffix.c_str());
     snprintf(configUrl,  sizeof(configUrl),  "http://%s/",         WiFi.localIP().toString().c_str());
-    
-    device.setUniqueId(mac, sizeof(mac));
 
+    device.setUniqueId(mac, sizeof(mac));
     device.setConfigurationUrl(configUrl);
-    device.setName("BeogramAdaptor");
+    device.setName("BeocordAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
-    device.enableLastWill();    
-    bgPlay.setIcon("mdi:play-circle");
-    bgPlay.setName("Play");
-    bgNext.setIcon("mdi:skip-next-circle");
-    bgNext.setName("Next");
-    bgPrev.setIcon("mdi:skip-previous-circle");
-    bgPrev.setName("Prev");  
-    bgStop.setIcon("mdi:stop-circle");
-    bgStop.setName("Stop");
-    bgStandby.setIcon("mdi:power-standby");
-    bgStandby.setName("Standby"); 
-    bgTrack.setIcon("mdi:music-note-eighth");
-    bgTrack.setName("Track");  
-    bgPlaybackState.setIcon("mdi:album");
-    bgPlaybackState.setName("State");
-    bgPlaying.setDeviceClass("running");
-    bgPlaying.setName("Playing");
-    bgPlaying.setIcon("mdi:disc-player");      
+    device.enableLastWill();
+    bcPlay.setIcon("mdi:play-circle");       bcPlay.setName("Play");
+    bcNext.setIcon("mdi:skip-next-circle");  bcNext.setName("Wind");
+    bcPrev.setIcon("mdi:skip-previous-circle"); bcPrev.setName("Rewind");
+    bcStop.setIcon("mdi:stop-circle");       bcStop.setName("Stop");
+    bcStandby.setIcon("mdi:power-standby"); bcStandby.setName("Standby");
+    bcPlaybackState.setIcon("mdi:cassette"); bcPlaybackState.setName("State");
+    bcPlaying.setDeviceClass("running");     bcPlaying.setName("Playing");
+    bcPlaying.setIcon("mdi:cassette");
     mqtt.setDiscoveryPrefix("homeassistant");
 
-    bgPlay.onCommand(onButtonCommand);
-    bgNext.onCommand(onButtonCommand);
-    bgPrev.onCommand(onButtonCommand);
-    bgStop.onCommand(onButtonCommand);
-    bgStandby.onCommand(onButtonCommand);      
+    bcPlay.onCommand(onButtonCommand);
+    bcNext.onCommand(onButtonCommand);
+    bcPrev.onCommand(onButtonCommand);
+    bcStop.onCommand(onButtonCommand);
+    bcStandby.onCommand(onButtonCommand);
 
-    preferences.begin("beogramadaptor", false);
+    preferences.begin("beocordadaptor", false);
     sseIP = preferences.getString("sseIP", "");
     haloIP = preferences.getString("haloIP", "");
     haloControls = preferences.getBool("feature_enabled", false);
     mqttIP = preferences.getString("mqttIP", "");
     mqttUser = preferences.getString("mqttUser", "");
     mqttPassword = preferences.getString("mqttPassword", "");
-    triggerSource = preferences.getString("triggerSource", "LINE IN");    
+    triggerSource = preferences.getString("triggerSource", "LINE IN");
 
-    haloClient.onMessage(onMessageCallback); 
+    haloClient.onMessage(onMessageCallback);
     haloClient.onEvent([](WebsocketsEvent event, String data) {
         if (event == WebsocketsEvent::ConnectionOpened) {
             haloLastPingReceived = millis();
@@ -1505,44 +1293,37 @@ void setup() {
             haloLastPingReceived = millis();
         }
     });
-  
+
     if (haloIP.length() > 0) {
         haloClient.connect(("ws://" + haloIP + ":" + HALO_WEBSOCKET_PORT).c_str());
     }
 
     server.on("/update-source", HTTP_GET, handleUpdateTriggerSource);
-
     server.on("/settings/reset-wifi", HTTP_GET, handleResetWifi);
-
     server.on("/mqtt", HTTP_GET, handleMqttConfig);
     server.on("/mqtt", HTTP_POST, handleMqttUpdate);
-    server.on("/mqtt/reset", HTTP_GET, handleMqttReset);    
+    server.on("/mqtt/reset", HTTP_GET, handleMqttReset);
 
     server.on("/command/play", HTTP_POST, []() {
-        sendHexCommand(PLAY);  // PLAY
+        sendHexCommand(PLAY);
         server.send(200, "application/json", "{\"status\":\"Play command sent\"}");
     });
-
     server.on("/command/stop", HTTP_POST, []() {
-        sendHexCommand(STOP);  // STOP
+        sendHexCommand(STOP);
         server.send(200, "application/json", "{\"status\":\"Stop command sent\"}");
     });
-
     server.on("/command/next", HTTP_POST, []() {
-        sendHexCommand(NEXT);  // NEXT
+        sendHexCommand(NEXT);
         server.send(200, "application/json", "{\"status\":\"Next command sent\"}");
     });
-
     server.on("/command/prev", HTTP_POST, []() {
-        sendHexCommand(PREVIOUS);  // PREVIOUS
+        sendHexCommand(PREVIOUS);
         server.send(200, "application/json", "{\"status\":\"Previous command sent\"}");
     });
-
     server.on("/command/standby", HTTP_POST, []() {
-        sendHexCommand(STANDBY);  // STANDBY
+        sendHexCommand(STANDBY);
         server.send(200, "application/json", "{\"status\":\"Standby command sent\"}");
     });
-
 
     server.on("/", handleRoot);
     server.on("/update", HTTP_GET, handleUpdate);
@@ -1557,8 +1338,7 @@ void setup() {
     server.begin();
 
     MDNS.addService("http", "tcp", 80);
-
-    checkMQTTConnection(true);  // Force immediate connect attempt
+    checkMQTTConnection(true);
 
     if (sseIP.length() > 0) {
         connectToServer();
@@ -1571,7 +1351,7 @@ void loop() {
     if (sseIP.length() > 0) {
         connectToHalo();
         checkSSEConnection();
-    }    
+    }
 
     checkPingWebsocket();
     handleSerial1Data();
@@ -1581,18 +1361,12 @@ void loop() {
     secondButtonUpdate();
     activateHaloPage();
     mqtt.loop();
-    checkMQTTConnection();    
+    checkMQTTConnection();
     readSSE();
     if (Serial.available() > 0) {
         String input = Serial.readStringUntil('\n');
         input.trim();
-        
-        if (input == "debug 1") {
-            debugSerial = true;
-            Serial.println("Debug mode enabled");
-        } else if (input == "debug 0") {
-            debugSerial = false;
-            Serial.println("Debug mode disabled");
-        }
+        if (input == "debug 1") { debugSerial = true; Serial.println("Debug mode enabled"); }
+        else if (input == "debug 0") { debugSerial = false; Serial.println("Debug mode disabled"); }
     }
 }

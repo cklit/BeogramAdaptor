@@ -15,7 +15,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "MOZ.2026.6.1"
+#define FIRMWARE_VERSION "MOZ.2026.7.5"
 
 bool debugSerial = false;
 
