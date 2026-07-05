@@ -15,7 +15,6 @@
 #define TXD2 17
 #define PIN 47
 #define NUMPIXELS 1
-#define DELAYVAL 500
 #define FIRMWARE_VERSION "ASE.2026.6.1"
 
 bool debugSerial = false; 
@@ -153,12 +152,11 @@ String mqttPassword;
 
 PlaybackState playbackState = BOOT;
 HaloUpdate haloUpdate = NONE;
-BeogramCommand pendingPlayCommand;
 Adafruit_NeoPixel pixels(NUMPIXELS, PIN, NEO_GRB + NEO_KHZ800);
 WiFiClient client;
 Preferences preferences;
 WebServer server(80);
-HTTPClient http;
+
 
 WiFiClient wifi;
 
@@ -513,15 +511,11 @@ void sendPageUpdate(const char* pageID, const char* buttonID) {
 }
 
 void checkWiFiConnection() {
-    if (WiFi.status() != WL_CONNECTED) {
+    static unsigned long lastWifiAttempt = 0;
+    if (WiFi.status() != WL_CONNECTED && millis() - lastWifiAttempt > 10000) {
+        lastWifiAttempt = millis();
         Serial.println("WiFi lost, attempting to reconnect...");
         WiFi.reconnect();
-        unsigned long startAttemptTime = millis();
-        while (WiFi.status() != WL_CONNECTED && millis() - startAttemptTime < 10000) {
-            delay(500);
-            Serial.print(".");
-        }
-        Serial.println(WiFi.status() == WL_CONNECTED ? "\nReconnected!" : "\nFailed to reconnect.");
     }
 }
 
@@ -1258,7 +1252,7 @@ void checkSSEConnection() {
             connectToServer();
 
             // Implement exponential backoff (double the delay up to a max of 8s)
-            reconnectDelay = min(reconnectDelay * 2, 32000UL);
+            reconnectDelay = min(reconnectDelay * 2, 8000UL);
         }
     } else {
         // Reset delay if connection is stable
@@ -1273,7 +1267,7 @@ void readSSE() {
         char c = client.read();
         if (c == '\n') {
             lineBuffer.trim();
-            if (lineBuffer.length() > 0 && lineBuffer.startsWith("data: ") || lineBuffer.startsWith("{")) {
+            if (lineBuffer.length() > 0 && (lineBuffer.startsWith("data: ") || lineBuffer.startsWith("{"))) {
                 processSSE(lineBuffer);
             }
             lineBuffer = "";
