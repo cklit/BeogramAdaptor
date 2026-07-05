@@ -1272,10 +1272,11 @@ void readSSE() {
     while (client.available()) {
         char c = client.read();
         if (c == '\n') {
-            if (lineBuffer.length() > 0) {
+            lineBuffer.trim();
+            if (lineBuffer.length() > 0 && lineBuffer.startsWith("data: ") || lineBuffer.startsWith("{")) {
                 processSSE(lineBuffer);
-                lineBuffer = "";
             }
+            lineBuffer = "";
         } else {
             lineBuffer += c;
         }
