@@ -1,6 +1,7 @@
 # BeogramAdaptor
 This project uses an ESP32 to connect to a Bang & Olufsen Connected Audio product (Mozart or ASE), and will send simple commands to a Beogram player whenever Line-in is selected. See more info below.
 
+<img src="/images/beogram_adaptor.jpeg" width="250px">
 
 ### Compatible with all Bang & Olufsen Connected Audio products that feature a Line-in source * / **
 Can be used with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
