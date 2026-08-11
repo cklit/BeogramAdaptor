@@ -1,0 +1,89 @@
+#pragma once
+#include <Arduino.h>
+
+// ── Pins & identity ─────────────────────────────────────────────────
+#define RXD2 16
+#define TXD2 17
+#define LEDPIN 47
+#define NUMPIXELS 1
+#define FIRMWARE_VERSION "UNI.2026.8.11"
+
+// ── Platform selection ──────────────────────────────────────────────
+// The adaptor supports two B&O platforms with different transports:
+//   ASE    → SSE stream on :8080 (/BeoNotify/Notifications) + BeoZone REST
+//   Mozart → WebSockets on :9339 (+ /remoteControl) + /api/v1 REST
+enum Platform { PLATFORM_ASE, PLATFORM_MOZART };
+
+// ── Network constants ───────────────────────────────────────────────
+static const int SSE_PORT = 8080;          // ASE notification stream
+static const int WEBSOCKET_PORT = 9339;    // Mozart notification websocket
+static const int HALO_WEBSOCKET_PORT = 8080;
+static const char* const DEVICE_NAME = "Beogram";
+static const char* const AP_SSID = "BeogramAdaptor";
+static const char* const AP_PASSWORD = "password";
+
+// ── Tunables ────────────────────────────────────────────────────────
+static const unsigned long reconnectInterval = 10000;
+static const unsigned long pingTimeout = 10000;
+static const unsigned long haloActionDelay = 800;
+static const unsigned long stateDebounceDelay = 100;
+#define MDNS_SCAN_TIME_MS 5000   // mDNS discovery: per service type
+
+// ── Beogram serial protocol ─────────────────────────────────────────
+enum BeogramCommand : uint8_t {
+    PLAY = 0x35,
+    STOP = 0x26,
+    STANDBY = 0x16,
+    NEXT = 0x2B,
+    PREVIOUS = 0x18,
+    WIND = 0x1A,
+    REWIND = 0x3A,
+    OPEN_FOR_DIGIT = 0x66,
+    DIGIT1 = 0x1F,
+    DIGIT2 = 0x2F,
+    DIGIT3 = 0x0F,
+    DIGIT4 = 0x37,
+    DIGIT5 = 0x17,
+    DIGIT6 = 0x27,
+    DIGIT7 = 0x07,
+    DIGIT8 = 0x3B,
+    DIGIT9 = 0x1B,
+    DIGIT0 = 0x3F
+};
+
+enum PlaybackState {
+    PLAYING,
+    PAUSED,
+    STOPPED,
+    BOOT
+};
+
+enum HaloUpdate {
+    CONFIG,
+    STATE,
+    PAGE,
+    NONE
+};
+
+enum BeogramFeedback : uint8_t {
+    TRACK1 = 0x01,   
+    TRACK2 = 0x02,
+    TRACK3 = 0x03,
+    TRACK4 = 0x04,
+    TRACK5 = 0x05,
+    TRACK6 = 0x06,
+    TRACK7 = 0x07,
+    TRACK8 = 0x08,
+    TRACK9 = 0x09,
+    TRACK10 = 0x0A,
+    TRACK11 = 0x0B,
+    TRACK12 = 0x0C,
+    TRACK13 = 0x0D,
+    TRACK14 = 0x0E,
+    TRACK14_PLUS = 0x0F,
+    PLAYING_FB = 0x1E,
+    STOPPED_FB = 0x46,
+    STANDBY_FB = 0x2E,
+    EJECTED_FB = 0x76,
+    UNKNOWN_STATE = 0xFF
+};

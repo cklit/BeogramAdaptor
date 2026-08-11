@@ -1,0 +1,172 @@
+#include "beogram.h"
+#include "state.h"
+#include "transport.h"
+#include "halo.h"
+#include "ha_mqtt.h"
+
+BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
+    if (debugSerial == true) {
+        Serial.print("Identifying state for sequence: ");
+        for (size_t i = 0; i < length; ++i) {
+            Serial.print(sequence[i], HEX);
+            Serial.print(" ");
+        }
+        Serial.print("Length: ");
+        Serial.println(length);
+    }
+    if (length == 5) {
+        if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
+        if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
+        if (sequence[0] == 0x78 && sequence[4] == 0x7C) return TRACK7;  
+        if (sequence[0] == 0x78 && sequence[4] == 0x7F) return TRACK13;          
+    } else if (length == 2) {
+        if (sequence[0] == PLAYING_FB && sequence[1] == PLAYING_FB) return PLAYING_FB;
+        if (sequence[0] == STOPPED_FB && sequence[1] == STOPPED_FB) return STOPPED_FB;
+        if (sequence[0] == STANDBY_FB && sequence[1] == STANDBY_FB) return STANDBY_FB;
+        if (sequence[0] == EJECTED_FB && sequence[1] == EJECTED_FB) return EJECTED_FB;
+    } else if (length == 4) {
+        if (sequence[0] == 0x78 && sequence[3] == 0x77) return TRACK1;
+        if (sequence[0] == 0x78 && sequence[3] == 0x7B) return TRACK2;
+        if (sequence[0] == 0x78 && sequence[3] == 0x73) return TRACK3;
+        if (sequence[0] == 0x78 && sequence[3] == 0x7D) return TRACK4;    
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x75) return TRACK5;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x79) return TRACK6;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x71) return TRACK7;                        
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7E) return TRACK8;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x76) return TRACK9;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x7A) return TRACK10;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x72) return TRACK11;
+        if (sequence[0] == 0x78 && sequence[2] == 0x78 && sequence[3] == 0x7C) return TRACK12;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x1E || sequence[3] == 0x74)) return TRACK13;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && (sequence[3] == 0x78 || sequence[3] == 0xF)) return TRACK14;
+        if (sequence[0] == 0x78 && sequence[1] == 0x70 && sequence[3] == 0x70) return TRACK14_PLUS;
+    }
+    return UNKNOWN_STATE;
+}
+
+void sendHexCommand(BeogramCommand command) {
+    Serial1.write(command);
+    delayMicroseconds(49991);
+    Serial1.write(command);
+}
+
+void sendPlayAfterDelay() {
+    if (waitingForPlay && millis() - delayPlayAfterDigit >= 1200) {
+        sendHexCommand(PLAY);           
+        waitingForPlay = false; // Reset flag
+        Serial.println("▶️ Sent PLAY after 1200ms delay");
+    }
+}
+
+void processBuffer(BeogramFeedback state) {
+    if (state == PLAYING_FB) {
+        playbackState = PLAYING;  
+        Serial.println("▶️ Beogram reported ON state.");
+        if (mqtt.isConnected()) {
+            bgPlaybackState.setValue("Playing");
+            bgPlaying.setState(true);
+        }
+        if (haloClient.available()) {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+        }       
+        if (platform == PLATFORM_MOZART) {
+            if (!lineInActive) {
+                sendHttpRequest("/api/v1/playback/sources/active/" + triggerSource, "POST");
+            } else {
+                sendHttpRequest("/api/v1/playback/command/play", "POST");
+            }
+        } else {
+            if (!lineInActive) {
+                forceSource();
+            }
+        }
+    } else if (state == STOPPED_FB || state == STANDBY_FB) {
+        Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
+        if (mqtt.isConnected()) {
+            bgTrack.setValue("-");
+            bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
+            bgPlaying.setState(false);
+        }
+        if (playbackState == PLAYING && lineInActive) {
+            playbackState = STOPPED;
+            Serial.println(state == STOPPED_FB ? "⏹️ Beogram has stopped." : "⏹️ Beogram has turned off.");
+            if (platform == PLATFORM_MOZART) {
+                sendHttpRequest("/api/v1/playback/command/stop", "POST");
+            }
+            if (haloClient.available()) {
+                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
+            }
+        }        
+    } else if (state == EJECTED_FB) {
+        playbackState = STOPPED;
+        Serial.println("⏏️ Beogram tray was ejected");
+        if (mqtt.isConnected()) {
+            bgTrack.setValue("-");
+            bgPlaybackState.setValue("Ejected"); 
+            bgPlaying.setState(false);    
+        }
+        if (haloClient.available()) {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
+        }            
+        if (platform == PLATFORM_MOZART && lineInActive) {
+            sendHttpRequest("/api/v1/playback/command/stop", "POST");
+        }
+    } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
+        Serial.print("Track identified: ");
+        Serial.println("14+");
+        if (mqtt.isConnected()) {        
+            bgTrack.setValue("14+");  
+        }
+        if (haloClient.available()) {
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
+        }
+    } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
+        Serial.print("Track identified: ");
+        Serial.println(state, DEC);
+        if (haloClient.available()) {
+            char subtitle[20];
+            sprintf(subtitle, "Track %d", state);
+            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
+        }     
+        char trackNumber[20];
+        sprintf(trackNumber, "%d", state);
+        if (mqtt.isConnected()) {
+            bgTrack.setValue(trackNumber);
+        }
+    } 
+}
+
+void handleSerial1Data() {
+    static uint8_t buffer[5];
+    static size_t bufferIndex = 0;
+    static unsigned long lastByteTime = 0;
+
+    while (Serial1.available()) {
+        uint8_t receivedByte = Serial1.read();
+        unsigned long currentTime = millis();
+
+        if (debugSerial == true) {
+          Serial.print("Received byte: 0x");
+          Serial.println(receivedByte, HEX);        
+        }
+
+        // Store the received byte in the buffer
+        buffer[bufferIndex++] = receivedByte;
+
+        lastByteTime = currentTime;
+
+        // Check if we have received 5 bytes
+        if (bufferIndex == 5) {
+            BeogramFeedback state = identifyState(buffer, bufferIndex);
+            processBuffer(state);
+            bufferIndex = 0;  // Reset buffer after processing
+        }
+    }
+
+    // Check if 35 ms have passed since the last byte was received
+    if (millis() - lastByteTime > 55 && bufferIndex > 0) {
+        BeogramFeedback state = identifyState(buffer, bufferIndex);
+        processBuffer(state);
+        bufferIndex = 0;  // Reset buffer after processing
+    }
+}
