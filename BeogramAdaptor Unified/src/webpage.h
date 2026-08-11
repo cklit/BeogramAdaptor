@@ -41,6 +41,9 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     .form-group label{font-size:13px;color:#666}
     @media(prefers-color-scheme:dark){.form-group label{color:#aaa}}
     .input-row{display:flex;gap:8px}
+    .hdr-btn{margin-left:auto;background:none;border:none;color:#999;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:16px}
+    .hdr-btn:hover{color:#333;background:#f0f0f0}
+    @media(prefers-color-scheme:dark){.hdr-btn{color:#888}.hdr-btn:hover{color:#ddd;background:#333}}
     .input-row input{flex:1;font-size:13px;padding:0 10px;height:36px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111}
     @media(prefers-color-scheme:dark){.input-row input{background:#1a1a1a;border-color:#444;color:#eee}}
     .btn{height:36px;padding:0 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;white-space:nowrap}
@@ -94,6 +97,23 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   <div class="page-title">
     <i class="ti ti-disc"></i>
     <h1>Beogram Adaptor</h1>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><i class="ti ti-disc"></i><h2>Beogram</h2><button class="hdr-btn" id="bg-standby" title="Beogram standby"><i class="ti ti-power"></i></button></div>
+    <div class="status-row">
+      <span class="status-label">State</span>
+      <span class="badge disconnected" id="bg-state"><i class="ti ti-circle"></i>Unknown</span>
+    </div>
+    <div class="status-row">
+      <span class="status-label">Track</span>
+      <span class="ip-chip" id="bg-track">-</span>
+    </div>
+    <div class="input-row" style="margin-top:8px;justify-content:center">
+      <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back"></i></button>
+      <button class="btn" id="bg-playpause" title="Play"><i class="ti ti-player-play" id="bg-playpause-icon"></i></button>
+      <button class="btn" id="bg-next" title="Next track"><i class="ti ti-player-skip-forward"></i></button>
+    </div>
   </div>
 
   <div class="card">
@@ -268,6 +288,38 @@ function applyPlatform(p){
   });
 }
 
+let bgPlayingNow=false;
+function renderBeogram(state,track,playing){
+  bgPlayingNow=!!playing;
+  let b=document.getElementById('bg-state');
+  b.className='badge '+(playing?'connected':'disconnected');
+  b.innerHTML='<i class="ti ti-circle"></i>'+state;
+  document.getElementById('bg-track').textContent=track||'-';
+  let pp=document.getElementById('bg-playpause');
+  document.getElementById('bg-playpause-icon').className=playing?'ti ti-player-pause':'ti ti-player-play';
+  pp.title=playing?'Stop':'Play';
+}
+
+let bgWs=null;
+function connectBgWs(){
+  bgWs=new WebSocket('ws://'+location.hostname+':81');
+  bgWs.onmessage=function(e){
+    try{let d=JSON.parse(e.data);renderBeogram(d.state,d.track,d.playing);}catch(err){}
+  };
+  bgWs.onclose=function(){setTimeout(connectBgWs,3000);};
+  bgWs.onerror=function(){bgWs.close();};
+}
+connectBgWs();
+
+['next','prev','standby'].forEach(function(cmd){
+  document.getElementById('bg-'+cmd).addEventListener('click',function(){
+    fetch('/command/'+cmd,{method:'POST'});
+  });
+});
+document.getElementById('bg-playpause').addEventListener('click',function(){
+  fetch('/command/'+(bgPlayingNow?'stop':'play'),{method:'POST'});
+});
+
 function updateStatus(){
   fetch('/status').then(r=>r.json()).then(d=>{
     applyPlatform(d.platform);
@@ -278,6 +330,7 @@ function updateStatus(){
     document.getElementById('featureToggle').checked=d.feature_enabled;
     document.getElementById('sourceSelect').value=d.trigger_source;
 
+    if(!bgWs||bgWs.readyState!==1)renderBeogram(d.beogram_state,d.beogram_track,d.beogram_playing);
     let hasProduct=d.product_ip&&d.product_ip!=='';
     document.getElementById('product-ip').textContent=hasProduct?d.product_ip:'—';
     let sn=d.product_serial||'';

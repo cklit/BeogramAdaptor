@@ -33,6 +33,10 @@ extern unsigned long delayPlayAfterDigit;  // delay PLAY command to CD player, w
 
 // Playback / Halo state
 extern PlaybackState playbackState;
+extern String beogramStateText;   // human-readable, mirrors the HA sensor
+extern String beogramTrack;
+extern bool beogramPlaying;
+extern bool beogramStateDirty;    // set by processBuffer, consumed by webpushLoop
 extern HaloUpdate haloUpdate;
 
 // Flags

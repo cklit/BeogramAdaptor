@@ -58,9 +58,19 @@ void sendPlayAfterDelay() {
     }
 }
 
+// Mirror state for the web UI (webpush) — kept separate from the HA
+// entities so the page is live even when MQTT isn't configured.
+static void setUiState(const char* state, const char* track, int playing) {
+    if (state != nullptr) beogramStateText = state;
+    if (track != nullptr) beogramTrack = track;
+    if (playing >= 0) beogramPlaying = (playing == 1);
+    beogramStateDirty = true;
+}
+
 void processBuffer(BeogramFeedback state) {
     if (state == PLAYING_FB) {
-        playbackState = PLAYING;  
+        playbackState = PLAYING;
+        setUiState("Playing", nullptr, 1);
         Serial.println("▶️ Beogram reported ON state.");
         if (mqtt.isConnected()) {
             bgPlaybackState.setValue("Playing");
@@ -82,6 +92,7 @@ void processBuffer(BeogramFeedback state) {
         }
     } else if (state == STOPPED_FB || state == STANDBY_FB) {
         Serial.println(state == STOPPED_FB ? "Beogram reported OFF state." : "Beogram reported STANDBY state.");
+        setUiState(state == STOPPED_FB ? "Stopped" : "Standby", "-", 0);
         if (mqtt.isConnected()) {
             bgTrack.setValue("-");
             bgPlaybackState.setValue(state == STOPPED_FB ? "Stopped" : "Standby");
@@ -100,6 +111,7 @@ void processBuffer(BeogramFeedback state) {
     } else if (state == EJECTED_FB) {
         playbackState = STOPPED;
         Serial.println("⏏️ Beogram tray was ejected");
+        setUiState("Ejected", "-", 0);
         if (mqtt.isConnected()) {
             bgTrack.setValue("-");
             bgPlaybackState.setValue("Ejected"); 
@@ -114,6 +126,7 @@ void processBuffer(BeogramFeedback state) {
     } else if (state == TRACK14_PLUS && playbackState == PLAYING) {
         Serial.print("Track identified: ");
         Serial.println("14+");
+        setUiState(nullptr, "14+", -1);
         if (mqtt.isConnected()) {        
             bgTrack.setValue("14+");  
         }
@@ -130,6 +143,7 @@ void processBuffer(BeogramFeedback state) {
         }     
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);
+        setUiState(nullptr, trackNumber, -1);
         if (mqtt.isConnected()) {
             bgTrack.setValue(trackNumber);
         }

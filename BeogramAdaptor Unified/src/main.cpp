@@ -12,6 +12,7 @@
 #include "discovery.h"
 #include "webui.h"
 #include "led.h"
+#include "webpush.h"
 
 WiFiManager wm;
 
@@ -236,6 +237,7 @@ void setup() {
 
     // ── Web server routes ───────────────────────────────────────────
     registerWebRoutes();   // webui.cpp — includes server.begin()
+    webpushBegin();
 
     // Only send greeting if connection was actually established
     if (platform == PLATFORM_MOZART && productIP.length() > 0 && wsClient.available()) {
@@ -268,6 +270,7 @@ void loop() {
     checkPingWebsocket();
     checkProductRecovery();
     handleSerial1Data();
+    webpushLoop();
     server.handleClient();
     checkWiFiConnection();
     sendPlayAfterDelay();

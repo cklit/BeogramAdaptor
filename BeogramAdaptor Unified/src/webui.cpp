@@ -440,6 +440,9 @@ void handleStatus() {
     jsonResponse += "\"platform\":\"" + String(platform == PLATFORM_MOZART ? "mozart" : "ase") + "\",";
     jsonResponse += "\"product_ip\":\"" + productIP + "\",";
     jsonResponse += "\"product_serial\":\"" + productSerial + "\",";
+    jsonResponse += "\"beogram_state\":\"" + beogramStateText + "\",";
+    jsonResponse += "\"beogram_track\":\"" + beogramTrack + "\",";
+    jsonResponse += String("\"beogram_playing\":") + (beogramPlaying ? "true" : "false") + ",";
     jsonResponse += "\"product_connected\":" + String(productConnected() ? "true" : "false") + ",";
     jsonResponse += "\"halo_ip\":\"" + haloIP + "\",";
     jsonResponse += "\"halo_serial\":\"" + haloSerial + "\",";

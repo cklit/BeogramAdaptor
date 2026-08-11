@@ -22,3 +22,4 @@ void sendHttpRequest(const String& endpoint, const String& method = "GET", const
 void checkWebSocketConnection();
 void processWebSocketMessage(const String& message);
 void processRemoteWebSocketMessage(const String& message);
+

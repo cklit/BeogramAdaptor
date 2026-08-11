@@ -17,6 +17,10 @@ unsigned long lastStartEventTime = 0;
 unsigned long delayPlayAfterDigit = 0;
 
 PlaybackState playbackState = BOOT;
+String beogramStateText = "Unknown";
+String beogramTrack = "-";
+bool beogramPlaying = false;
+bool beogramStateDirty = false;
 HaloUpdate haloUpdate = NONE;
 
 bool haloControls;
