@@ -281,16 +281,16 @@ function updateStatus(){
     let hasProduct=d.product_ip&&d.product_ip!=='';
     document.getElementById('product-ip').textContent=hasProduct?d.product_ip:'—';
     let sn=d.product_serial||'';
-    document.getElementById('product-serial-row').style.display=sn?'flex':'none';
-    document.getElementById('product-serial').textContent=sn;
+    document.getElementById('product-serial-row').style.display=hasProduct?'flex':'none';
+    document.getElementById('product-serial').textContent=sn||'Not available - IP manually added';
     document.getElementById('product-connect-form').style.display=hasProduct?'none':'flex';
     document.getElementById('product-action-row').style.display=hasProduct?'flex':'none';
 
     let hasHalo=d.halo_ip&&d.halo_ip!=='';
     document.getElementById('halo-ip').textContent=hasHalo?d.halo_ip:'—';
     let hsn=d.halo_serial||'';
-    document.getElementById('halo-serial-row').style.display=hsn?'flex':'none';
-    document.getElementById('halo-serial').textContent=hsn;
+    document.getElementById('halo-serial-row').style.display=hasHalo?'flex':'none';
+    document.getElementById('halo-serial').textContent=hsn||'Not available - IP manually added';
     document.getElementById('halo-connect-form').style.display=hasHalo?'none':'flex';
     document.getElementById('halo-action-row').style.display=hasHalo?'flex':'none';
   }).catch(()=>{});

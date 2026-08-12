@@ -6,7 +6,7 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
-#define FIRMWARE_VERSION "UNI.2026.8.11"
+#define FIRMWARE_VERSION "BeogramAdaptor.2026.8.12"
 
 // ── Platform selection ──────────────────────────────────────────────
 // The adaptor supports two B&O platforms with different transports:
@@ -28,6 +28,10 @@ static const unsigned long pingTimeout = 10000;
 static const unsigned long haloActionDelay = 800;
 static const unsigned long stateDebounceDelay = 100;
 #define MDNS_SCAN_TIME_MS 5000   // mDNS discovery: per service type
+// Self-healing: if a discovery-linked product stays unreachable, rescan
+// mDNS for its serial number and follow it to a new IP address.
+static const unsigned long RECOVERY_AFTER_MS = 120000;         // 2 min of failed reconnects first
+static const unsigned long RECOVERY_SCAN_INTERVAL_MS = 180000; // then rescan every 3 min
 
 // ── Beogram serial protocol ─────────────────────────────────────────
 enum BeogramCommand : uint8_t {

@@ -266,6 +266,7 @@ void loop() {
 
     connectToHalo();
     checkPingWebsocket();
+    checkProductRecovery();
     handleSerial1Data();
     server.handleClient();
     checkWiFiConnection();

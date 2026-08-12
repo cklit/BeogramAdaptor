@@ -1,4 +1,5 @@
 #include "discovery.h"
+#include "transport.h"
 #include <ESPmDNS.h>
 #include <mdns.h>
 #include <WiFi.h>
@@ -99,4 +100,64 @@ void handleDiscoverHalo() {
     String out;
     serializeJson(doc, out);
     server.send(200, "application/json", out);
+}
+
+// ── Self-healing product connection ─────────────────────────────────
+// Connect-by-IP stays the fast path, but the serial number stored at
+// discovery-link time is the product's real identity. If the connection
+// has been down long enough that normal reconnects clearly aren't
+// working, rescan the active platform's service type and look for that
+// serial — if the product moved to a new IP (DHCP lease change), follow
+// it there and persist. Manually-entered IPs have no stored serial and
+// intentionally never self-heal.
+static unsigned long productDisconnectedSince = 0;
+static unsigned long lastRecoveryScan = 0;
+
+void checkProductRecovery() {
+    if (productIP.length() == 0 || productSerial.length() == 0) return;
+    if (productConnected()) {
+        productDisconnectedSince = 0;
+        return;
+    }
+
+    unsigned long now = millis();
+    if (productDisconnectedSince == 0) {
+        productDisconnectedSince = now;
+        return;
+    }
+    if (now - productDisconnectedSince < RECOVERY_AFTER_MS) return;   // let normal reconnects try first
+    if (lastRecoveryScan != 0 && now - lastRecoveryScan < RECOVERY_SCAN_INTERVAL_MS) return;
+    lastRecoveryScan = now;
+
+    Serial.println("Product unreachable — scanning mDNS for serial " + productSerial);
+    JsonDocument doc;
+    JsonArray arr = doc["devices"].to<JsonArray>();
+    String seenIPs = "|";
+    if (platform == PLATFORM_MOZART) {
+        collectService("_bangolufsen", "fn",   "sn",  0,  0, "mozart", arr, seenIPs);
+    } else {
+        collectService("_beoremote",   "name", "jid", 13, 8, "ase",    arr, seenIPs);
+    }
+
+    for (JsonObject dev : arr) {
+        if (productSerial == dev["serial"].as<String>()) {
+            String newIP = dev["ip"].as<String>();
+            if (newIP != productIP) {
+                Serial.println("Product moved from " + productIP + " to " + newIP + " — following");
+                productIP = newIP;
+                preferences.putString("productIP", productIP);
+                if (platform == PLATFORM_MOZART) {
+                    wsClient.close();
+                    remoteClient.close();
+                    wsClient.connect(("ws://" + productIP + ":" + WEBSOCKET_PORT).c_str());
+                    remoteClient.connect(("ws://" + productIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str());
+                } else {
+                    sseClient.stop();
+                    connectToSSE();
+                }
+            }
+            return;
+        }
+    }
+    Serial.println("Recovery scan found no product with matching serial");
 }
