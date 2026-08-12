@@ -1,5 +1,15 @@
 # BeogramAdaptor
-This project uses an ESP32 to connect to a Bang & Olufsen Connected Audio product (Mozart or ASE), and will send simple commands to a Beogram player whenever Line-in is selected. See more info below.
+The BeogramAdaptor connects a vintage Beogram record player or CD player to a
+modern Bang & Olufsen product, turning it into a fully integrated source:
+- Select Line-in and the Beogram starts playing
+- Switch source and it stops
+- Send the product to standby and the Beogram turns off.
+
+Your Beogram behaves exactly like a native source — controllable from the product itself, the B&O
+app, a Beoremote One or a Beoremote Halo. 
+
+Under the hood, an ESP32 monitors your B&O product over the network and translates its state into Data Link
+commands for the Beogram. See more info below.
 
 <img src="/images/beogram_adaptor.jpeg" width="250px">
 
