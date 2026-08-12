@@ -37,9 +37,22 @@ _*Some products support Line-In through a passive USB-C to 3.5mm jack adaptor - 
 _** I have **not** tested this on a product with Google Assistant built-in._ <br>
 
 # How does it work?
-Basically, this is a female 7-pin DIN to male 3.5mm jack cable/adaptor with a little piece of electronics attached to it. Your Beogram player connects to the female DIN plug. The 3.5mm jack connects to Line-in on the B&O Mozart-based product.
+Physically, the BeogramAdaptor is a female 7-pin DIN to male 3.5mm jack
+adaptor with a small piece of electronics built in. The Beogram plugs into
+the DIN end, and the jack plugs into Line-in on your Bang & Olufsen product —
+so the audio travels through it just like a normal cable.
 
-In the DIN-end of the cable an ESP32 is connected to the data pins from the Beogram player. The ESP32 requires a separate USB power supply.
+Inside the DIN end, an ESP32 board is connected to the Beogram's Data Link
+pins. The ESP32 connects to your WiFi network and listens to the event stream
+from your Bang & Olufsen product — the same way the B&O app receives live
+updates from it. This is how the adaptor knows which source is active, and
+when to send play, stop and standby commands to the Beogram.
+
+Communication over Data Link is bidirectional: the adaptor doesn't just send
+commands, it also receives status back from the Beogram — such as playing
+state and, for CD players, the current track number.
+
+The ESP32 is powered by a separate USB power supply.
 
 **Principle (analogue audio or digital audio):**
 
