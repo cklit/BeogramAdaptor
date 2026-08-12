@@ -80,9 +80,9 @@ Once connected the BeogramAdaptor will monitor the event stream from the product
 <img src="/screenshots/beogramadaptor20260811_2.png" width="50%"><img src="/screenshots/beogramadaptor20260811_3.png" width="50%">
 
 In the section below the product selector, you can choose to connect to a Beoremote Halo to get player controls. <br><br>
-Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.
-<img src="/screenshots/mqtt.png" width="50%">
-<img src="/screenshots/mqtt_overview.png" width="60%">
+Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.<br>
+<img src="/screenshots/mqtt.png" width="45%">
+<img src="/screenshots/mqtt_overview.png" width="50%">
 
 
 ---
