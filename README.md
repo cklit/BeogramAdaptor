@@ -6,13 +6,22 @@ This project uses an ESP32 to connect to a Bang & Olufsen Connected Audio produc
 ### Compatible with all Bang & Olufsen Connected Audio products that feature a Line-in source * / **
 Can be used with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
 
-Here is a list of record players that feature Data Link and a built-in RIAA pre-amp:
+**Supported record players that feature Data Link and a built-in RIAA pre-amp:**
 - Beogram 3500
 - Beogram 4500
 - Beogram 6500
 - Beogram 7000
 
-Also tested successfully with Beogram CD4500 and CD6500 (which means that it PROBABLY also works with other Beogram CD models with Data Link).
+_If your Data Link-capable Bang & Olufsen record player does not include a built-in RIAA pre-amp, it is possible to use a OneRemote riaa with Data Link passthrough (Example: https://shop.oneremote.dk/shop/69068-riaa-forstaerker/121270-riaa-iii-forforstaerker)_
+
+**Supported CD players that feature Data Link:**
+- Beogram CD 50
+- Beogram CD 3300
+- Beogram CD 3500
+- Beogram CD 4500
+- Beogram CD 5500
+- Beogram CD 6500
+- Beogram CD 7000
 
 _*Some products support Line-In through a passive USB-C to 3.5mm jack adaptor - but not all!_ <br>
 _** I have **not** tested this on a product with Google Assistant built-in._ <br>
@@ -32,19 +41,24 @@ In the DIN-end of the cable an ESP32 is connected to the data pins from the Beog
 
 # Setup
 
-Once it is powered on it will start a Soft AP called _BeogramAdaptor_ that you can connect to (password is _password_), which allows you to add the credentials to your own WiFi network.
+Once it is powered on it will start a Soft AP, which allows you to add the credentials to your own WiFi network.
+
+SSID: **BeogramAdaptor** <br>
+Password: **password**
 
 As soon as it is connected, enter _beogram.local_ in your browser.
 
-Here you can enter the IP-address of the product you have connected the Beogram to. Press Submit to save.
-The ESP32 now will monitor the event stream from the product.
+In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BeogramAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BeogramAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
-<img src="/screenshots/frontpage.png" width="50%"><img src="/screenshots/mqtt.png" width="50%">
+Additionally you can select whether the Beogram player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
 
-Additionally (and optionally) you can select whether the Beogram player is connected to Line-in or Optical _(ensure that your product supports optical input - may require coax to optical digital audio converter)._ <br><br>
-You can also enter the IP-address of a Beoremote Halo to get player controls. <br><br>
+Once connected the BeogramAdaptor will monitor the event stream from the product.
+
+<img src="/screenshots/beogramadaptor20260811_2.png" width="50%"><img src="/screenshots/beogramadaptor20260811_3.png" width="50%">
+
+In the section below the product selector, you can choose to connect to a Beoremote Halo to get player controls. <br><br>
 Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.
-
+<img src="/screenshots/mqtt.png" width="50%">
 <img src="/screenshots/mqtt_overview.png" width="60%">
 
 
@@ -59,7 +73,7 @@ A short demo of the different possibilities can be found here: https://youtu.be/
 
 Changing source away from Line-in will send a STOP command to the Beogram (pause, basically). 
 
-Activating Line-in again will send PLAY and resume from the point where you left off (note: the Beogram will automatically turn off after x minutes in STOP-mode).
+Activating Line-in again will send PLAY and resume from the point where you left off (note: the Beogram will automatically turn off after a few minutes in STOP-mode).
 
 
 Sending a Standby or All-standby to the product from any interface will turn off the record player.
@@ -128,8 +142,9 @@ Diagram:
 # How to install
 If you have an existing BeogramAdaptor and you want to update the board, go to _beogram.local_ and update using the OTA-release files from this repository.
 
+**The description below does not match the latest versions. I will update this later.**
 
-If you want to install the BeogramAdaptor from scratch on a Lolin S3 Mini board, download the release package (.zip), which includes 4 .bin files.
+<s>If you want to install the BeogramAdaptor from scratch on a Lolin S3 Mini board, download the release package (.zip), which includes 4 .bin files.
 
 Connect your Lolin S3 Mini board to your computer via USB, and go to https://espressif.github.io/esptool-js/ (you must use the Chrome browser).
 
@@ -147,10 +162,7 @@ Now a new field appears: **Flash Address**. In the right-hand side you can selec
 | 0xe000 | boot_app0.bin |
 | 0x10000 | x.release.bin |
 
-Once this is filled out, press the **Program** button. The flashing process usually takes around 30 seconds.
+Once this is filled out, press the **Program** button. The flashing process usually takes around 30 seconds.</s>
 
-
-## Installing on different boards
-If you want to use a different board, the .ino file is available for you to edit and compile yourself. 
 
 
