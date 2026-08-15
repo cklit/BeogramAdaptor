@@ -4,6 +4,7 @@
 #include "ha_mqtt.h"
 #include <WiFi.h>
 #include <ArduinoJson.h>
+#include <lwip/sockets.h>
 
 void forceSource() {
     if (WiFi.status() == WL_CONNECTED) {
@@ -19,6 +20,25 @@ void forceSource() {
     }
 }
 
+// The SSE stream is receive-only, so if the product reboots or drops off
+// the network without closing the socket, the ESP32 never sends anything
+// that would reveal the peer is gone: the TCP connection sits half-open,
+// sseClient.connected() keeps returning true, and no notifications ever
+// arrive again. TCP keepalive makes the stack probe the peer itself, so a
+// dead connection is detected in ~25 s and the normal reconnect kicks in.
+static void enableTcpKeepAlive(WiFiClient& client) {
+    int fd = client.fd();
+    if (fd < 0) return;
+    int enable = 1;
+    int idle = 10;      // seconds of silence before the first probe
+    int interval = 5;   // seconds between probes
+    int count = 3;      // unanswered probes before the connection is declared dead
+    setsockopt(fd, SOL_SOCKET,  SO_KEEPALIVE,  &enable,   sizeof(enable));
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPIDLE,  &idle,     sizeof(idle));
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPINTVL, &interval, sizeof(interval));
+    setsockopt(fd, IPPROTO_TCP, TCP_KEEPCNT,   &count,    sizeof(count));
+}
+
 void connectToSSE() {
     if (sseClient.connected()) return;  // Avoid reconnecting if already connected
 
@@ -29,6 +49,8 @@ void connectToSSE() {
         Serial.println("Connection to server failed!");
         return;
     }
+    enableTcpKeepAlive(sseClient);
+    sseLastDataReceived = millis();
 
     sseClient.println("GET /BeoNotify/Notifications HTTP/1.1");
     sseClient.println("Host: " + productIP + ":" + String(SSE_PORT));
@@ -40,6 +62,13 @@ void connectToSSE() {
 }
 
 void checkSSEConnection() {
+    // Safety net on top of TCP keepalive: if the stream has been silent for a
+    // long time, drop it and reconnect. Cheap on a healthy product (one GET).
+    if (sseClient.connected() && millis() - sseLastDataReceived > SSE_IDLE_TIMEOUT_MS) {
+        Serial.println("SSE stream silent too long — reconnecting");
+        sseClient.stop();
+    }
+
     if (!sseClient.connected()) {
         unsigned long now = millis();
 
@@ -184,6 +213,7 @@ void readSSE() {
 
     while (sseClient.available()) {
         char c = sseClient.read();
+        sseLastDataReceived = millis();
         if (c == '\n') {
             lineBuffer.trim();
             if (lineBuffer.length() > 0 && (lineBuffer.startsWith("data: ") || lineBuffer.startsWith("{"))) {

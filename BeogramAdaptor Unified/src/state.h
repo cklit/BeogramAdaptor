@@ -20,6 +20,7 @@ extern Platform platform;
 // Timers
 extern unsigned long sseLastReconnectAttempt;
 extern unsigned long sseReconnectDelay;      // ASE: exponential backoff, start at 1s
+extern unsigned long sseLastDataReceived;    // ASE: last byte seen on the SSE stream
 extern unsigned long wsLastReconnectAttempt;    // Mozart
 extern unsigned long haloLastReconnectAttempt;
 extern unsigned long mqttLastReconnectAttempt;

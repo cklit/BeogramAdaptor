@@ -5,6 +5,7 @@ Platform platform = PLATFORM_ASE;
 
 unsigned long sseLastReconnectAttempt = 0;
 unsigned long sseReconnectDelay = 1000;
+unsigned long sseLastDataReceived = 0;
 unsigned long wsLastReconnectAttempt = millis();
 unsigned long haloLastReconnectAttempt = millis();
 unsigned long mqttLastReconnectAttempt = millis();
