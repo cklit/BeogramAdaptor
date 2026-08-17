@@ -6,12 +6,9 @@
 #define TXD2 17
 #define LEDPIN 47
 #define NUMPIXELS 1
+
 // Version scheme: BGAdaptor.<year>.<month>.<day> of the build/release
-<<<<<<< HEAD
-#define FIRMWARE_VERSION "BGAdaptor.2026.8.16"
-=======
 #define FIRMWARE_VERSION "BGAdaptor.2026.8.17"
->>>>>>> b96334a (Added player controls and state for Beogram on the web interface.)
 
 // ── Platform selection ──────────────────────────────────────────────
 // The adaptor supports two B&O platforms with different transports:
@@ -20,17 +17,12 @@
 enum Platform { PLATFORM_ASE, PLATFORM_MOZART };
 
 // ── Network constants ───────────────────────────────────────────────
-<<<<<<< HEAD
-static const int SSE_PORT = 8080;          // ASE notification stream
-static const int WEBSOCKET_PORT = 9339;    // Mozart notification websocket
-static const int HALO_WEBSOCKET_PORT = 8080;
-static const int UI_WS_PORT = 81;          // live state push to the web UI
-=======
+
 static const int SSE_PORT = 8080;           // ASE notification stream
 static const int WEBSOCKET_PORT = 9339;     // Mozart notification websocket
 static const int HALO_WEBSOCKET_PORT = 8080;// Halo notification websocket
 static const int UI_WS_PORT = 81;           // live state push to the web UI
->>>>>>> b96334a (Added player controls and state for Beogram on the web interface.)
+
 static const char* const DEVICE_NAME = "Beogram";
 static const char* const AP_SSID = "BeogramAdaptor";
 static const char* const AP_PASSWORD = "password";
