@@ -1,5 +1,5 @@
-# BeogramAdaptor
-The BeogramAdaptor connects a vintage Beogram record player or CD player to a
+# BGAdaptor
+The BGAdaptor connects a vintage Beogram record player or CD player to a
 modern Bang & Olufsen product, turning it into a fully integrated source:
 - Select Line-in and the Beogram starts playing
 - Switch source and it stops
@@ -37,11 +37,11 @@ _*Some products support Line-In through a passive USB-C to 3.5mm jack adaptor - 
 _** I have **not** tested this on a product with Google Assistant built-in._ <br>
 
 # How does it work?
-Physically, the BeogramAdaptor is a female 7-pin DIN to male 3.5mm jack
+Physically, the BGAdaptor is a female 7-pin DIN to male 3.5mm jack
 adaptor with a small piece of electronics built in. The Beogram plugs into
 the DIN end, and a jack cable is plugged into the jack plug of the adaptor, into Line-in on your Bang & Olufsen product.
 
-Inside the BeogramAdaptor, an ESP32 board is connected to the Beogram's Data Link
+Inside the BGAdaptor, an ESP32 board is connected to the Beogram's Data Link
 pins. The ESP32 connects to your WiFi network and listens to the event stream
 from your Bang & Olufsen product — similar to how the B&O app receives feedback from it. This is how the adaptor knows which source is active, and
 when to send play, stop and standby commands to the Beogram.
@@ -64,18 +64,18 @@ The ESP32 is powered by a separate USB power supply.
 
 Once it is powered on it will start a Soft AP, which allows you to add the credentials to your own WiFi network.
 
-SSID: **BeogramAdaptor** <br>
+SSID: **BGAdaptor** <br>
 Password: **password**
 
 As soon as it is connected, enter _beogram.local_ in your browser.
 
-In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BeogramAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BeogramAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
+In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
 Additionally you can select whether the Beogram player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
 
-Once connected the BeogramAdaptor will monitor the event stream from the product.
+Once connected the BGAdaptor will monitor the event stream from the product.
 
-<img src="/screenshots/beogramadaptor20260811_2.png" width="50%"><img src="/screenshots/beogramadaptor20260811_3.png" width="50%">
+<img src="/screenshots/BGAdaptor20260811_2.png" width="50%"><img src="/screenshots/BGAdaptor20260811_3.png" width="50%">
 
 In the section below the product selector, you can choose to connect to a Beoremote Halo to get player controls. <br><br>
 Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.<br>
@@ -110,11 +110,11 @@ With a connected Beoremote One BT you can do basic control of the connected Beog
 It is **not** possible to change track using the Bang & Olufsen app. Neither is it possible to change track from another room that has joined the experience.
 
 ### Control using a Beoremote Halo (OPTIONAL)
-You can connect a Beoremote Halo to the BeogramAdaptor from the webpage (_beogram.local_). This will create a custom page on the Halo for Next, Previous and Play/Pause control of the Beogram.
+You can connect a Beoremote Halo to the BGAdaptor from the webpage (_beogram.local_). This will create a custom page on the Halo for Next, Previous and Play/Pause control of the Beogram.
 
 If a Beogram CD player is connected, it will also show the currently playing track.
 
-_If you already is utilising the custom pages, e.g. through a Beoliving Intelligence, do not add your Halo to the Beogram adaptor. Halo can only connect to one client at a time._
+_If you already is utilising the custom pages, e.g. through a Beoliving Intelligence, do not add your Halo to the BGAdaptor. Halo can only connect to one client at a time._
 
 <img src="/screenshots/Halo_controls.jpeg" width="400px">
 
@@ -161,11 +161,11 @@ Diagram:
 
 
 # How to install
-If you have an existing BeogramAdaptor and you want to update the board, go to _beogram.local_ and update using the OTA-release files from this repository.
+If you have an existing BGAdaptor and you want to update the board, go to _beogram.local_ and update using the OTA-release files from this repository.
 
 **The description below does not match the latest versions. I will update this later.**
 
-<s>If you want to install the BeogramAdaptor from scratch on a Lolin S3 Mini board, download the release package (.zip), which includes 4 .bin files.
+<s>If you want to install the BGAdaptor from scratch on a Lolin S3 Mini board, download the release package (.zip), which includes 4 .bin files.
 
 Connect your Lolin S3 Mini board to your computer via USB, and go to https://espressif.github.io/esptool-js/ (you must use the Chrome browser).
 
