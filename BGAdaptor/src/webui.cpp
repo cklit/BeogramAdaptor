@@ -492,7 +492,7 @@ void handleResetWifi() {
             <i class="ti ti-wifi-off"></i>
             <h2>WiFi settings cleared</h2>
             </div>
-            <p class="sub">Restarting in AP mode&hellip; Connect to <strong>BeogramAdaptor</strong> to reconfigure.</p>
+            <p class="sub">Restarting in AP mode&hellip; Connect to <strong>BGAdaptor</strong> to reconfigure.</p>
         </div>
         </div>
         </body>

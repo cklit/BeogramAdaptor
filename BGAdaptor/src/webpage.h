@@ -10,7 +10,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Beogram Adaptor</title>
+  <title>BGAdaptor</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
@@ -96,7 +96,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
 <div class="page">
   <div class="page-title">
     <i class="ti ti-disc"></i>
-    <h1>Beogram Adaptor</h1>
+    <h1>BGAdaptor</h1>
   </div>
 
   <div class="card">
@@ -239,7 +239,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   <div class="card">
     <div class="link-row">
       <i class="ti ti-brand-github"></i>
-      <a href="https://github.com/cklit/BeogramAdaptor" target="_blank">View on GitHub</a>
+      <a href="https://github.com/cklit/BGAdaptor" target="_blank">View on GitHub</a>
     </div>
   </div>
 </div>

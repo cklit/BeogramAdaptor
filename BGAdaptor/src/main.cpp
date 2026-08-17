@@ -102,7 +102,7 @@ void setup() {
     Serial.println("mDNS responder started");
 
     // ── Preferences & platform resolution ───────────────────────────
-    preferences.begin("beogramadaptor", false);
+    preferences.begin("bgadaptor", false);
 
     String platformStr = preferences.getString("platform", "");
     if (platformStr == "") {
@@ -158,7 +158,7 @@ void setup() {
     device.setUniqueId(mac, sizeof(mac));
 
     device.setConfigurationUrl(configUrl);
-    device.setName("BeogramAdaptor");
+    device.setName("BGAdaptor");
     device.setSoftwareVersion(FIRMWARE_VERSION);
     device.enableSharedAvailability();
     device.enableLastWill();    

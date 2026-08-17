@@ -24,7 +24,7 @@ static const int HALO_WEBSOCKET_PORT = 8080;// Halo notification websocket
 static const int UI_WS_PORT = 81;           // live state push to the web UI
 
 static const char* const DEVICE_NAME = "Beogram";
-static const char* const AP_SSID = "BeogramAdaptor";
+static const char* const AP_SSID = "BGAdaptor";
 static const char* const AP_PASSWORD = "password";
 
 // ── Tunables ────────────────────────────────────────────────────────
