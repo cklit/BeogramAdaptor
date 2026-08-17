@@ -13,8 +13,15 @@ commands for the Beogram. See more info below.
 
 <img src="/images/beogram_adaptor.jpeg" width="250px">
 
-### Compatible with all Bang & Olufsen Connected Audio products that feature a Line-in source * / **
-Can be used with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
+### Compatible with all Bang & Olufsen Connected Audio products that feature a Line-in source.
+See this article for <a href="https://support.bang-olufsen.com/hc/en-us/articles/24766979863441-Which-platform-is-my-Connected-Audio-product-based-on">compatible products</a>.<br>
+- Both ASE and Mozart Platform-based products are supported, as long as they feature a Line-in input.
+- Be aware that Beosound 1 and Beosound A5 does not feature a Line-in input.
+- Some Mozart Platform-based products require an optional passive USB-C to 3.5mm jack adaptor for Line-in.
+- Products with Google Assistant are **not** supported.
+
+
+### Compatible with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
 
 **Supported record players that feature Data Link and a built-in RIAA pre-amp:**
 - Beogram 3500
@@ -33,13 +40,11 @@ _If your Data Link-capable Bang & Olufsen record player does not include a built
 - Beogram CD 6500
 - Beogram CD 7000
 
-_*Some products support Line-In through a passive USB-C to 3.5mm jack adaptor - but not all!_ <br>
-_** I have **not** tested this on a product with Google Assistant built-in._ <br>
 
 # How does it work?
 Physically, the BGAdaptor is a female 7-pin DIN to male 3.5mm jack
 adaptor with a small piece of electronics built in. The Beogram plugs into
-the DIN end, and a jack cable is plugged into the jack plug of the adaptor, into Line-in on your Bang & Olufsen product.
+the DIN end, and a jack cable is connected between the adaptor and the Line-in input of your Bang & Olufsen product.
 
 Inside the BGAdaptor, an ESP32 board is connected to the Beogram's Data Link
 pins. The ESP32 connects to your WiFi network and listens to the event stream
@@ -47,10 +52,10 @@ from your Bang & Olufsen product — similar to how the B&O app receives feedbac
 when to send play, stop and standby commands to the Beogram.
 
 Communication over Data Link is bidirectional: the adaptor sends
-commands, but also receives status back from the Beogram — such as playing
+commands, but also receives status back from the Beogram, such as playing
 state and, for CD players, the current track number.
 
-The ESP32 is powered by a separate USB power supply.
+The ESP32 is powered by a separate USB power supply or an available USB port of your Bang & Olufsen product (if applicable).
 
 **Principle (analogue audio or digital audio):**
 
@@ -71,7 +76,7 @@ As soon as it is connected, enter _beogram.local_ in your browser.
 
 In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
-Additionally you can select whether the Beogram player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
+Additionally you can select whether the Beogram player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input, if chosen. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
 
 Once connected the BGAdaptor will monitor the event stream from the product.
 
