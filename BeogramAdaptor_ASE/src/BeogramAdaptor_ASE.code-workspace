@@ -1,0 +1,20 @@
+{
+	"folders": [
+		{
+			"path": ".."
+		},
+		{
+			"name": "BeogramAdaptor_Moz",
+			"path": "../../BeogramAdaptor_Moz"
+		},
+		{
+			"name": "BeocordAdaptor_ASE",
+			"path": "../../BeocordAdaptor_ASE"
+		},
+		{
+			"name": "BeogramAdaptor Unified",
+			"path": "../../BeogramAdaptor Unified"
+		}
+	],
+	"settings": {}
+}
