@@ -102,7 +102,7 @@ void setup() {
     Serial.println("mDNS responder started");
 
     // ── Preferences & platform resolution ───────────────────────────
-    preferences.begin("bgadaptor", false);
+    preferences.begin("beogramadaptor", false);
 
     String platformStr = preferences.getString("platform", "");
     if (platformStr == "") {
