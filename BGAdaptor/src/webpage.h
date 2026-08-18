@@ -293,7 +293,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <h2>Reset</h2>
       <button class="btn btn-danger" id="factory-reset-btn" style="margin-left: auto;">Reset BGAdaptor</button>
     </div>
-    <p class="hint" style="margin-top:0">Will reset <strong>all settings</strong> &mdash; the connection to the product, Beoremote Halo, Home Assistant, and WiFi credentials will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
+    <p class="hint" style="margin-top:0">Will reset <strong>all settings</strong> &mdash; its connection to the product, Beoremote Halo, Home Assistant, and WiFi will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
   </div>
 </div>
 
