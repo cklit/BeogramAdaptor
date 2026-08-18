@@ -111,7 +111,8 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     </div>
     <div class="input-row" style="margin-top:8px;justify-content:center">
       <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back"></i></button>
-      <button class="btn" id="bg-playpause" title="Play"><i class="ti ti-player-play" id="bg-playpause-icon"></i></button>
+      <button class="btn" id="bg-play" title="Play"><i class="ti ti-player-play"></i></button>
+      <button class="btn" id="bg-stop" title="Stop"><i class="ti ti-player-stop"></i></button>
       <button class="btn" id="bg-next" title="Next track"><i class="ti ti-player-skip-forward"></i></button>
     </div>
   </div>
@@ -288,16 +289,11 @@ function applyPlatform(p){
   });
 }
 
-let bgPlayingNow=false;
 function renderBeogram(state,track,playing){
-  bgPlayingNow=!!playing;
   let b=document.getElementById('bg-state');
   b.className='badge '+(playing?'connected':'disconnected');
   b.innerHTML='<i class="ti ti-circle"></i>'+state;
   document.getElementById('bg-track').textContent=track||'-';
-  let pp=document.getElementById('bg-playpause');
-  document.getElementById('bg-playpause-icon').className=playing?'ti ti-player-pause':'ti ti-player-play';
-  pp.title=playing?'Stop':'Play';
 }
 
 let bgWs=null;
@@ -311,13 +307,10 @@ function connectBgWs(){
 }
 connectBgWs();
 
-['next','prev','standby'].forEach(function(cmd){
+['play','stop','next','prev','standby'].forEach(function(cmd){
   document.getElementById('bg-'+cmd).addEventListener('click',function(){
     fetch('/command/'+cmd,{method:'POST'});
   });
-});
-document.getElementById('bg-playpause').addEventListener('click',function(){
-  fetch('/command/'+(bgPlayingNow?'stop':'play'),{method:'POST'});
 });
 
 function updateStatus(){
