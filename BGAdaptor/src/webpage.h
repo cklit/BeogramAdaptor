@@ -104,7 +104,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-disc"></i><h2>Beogram</h2><button class="hdr-btn" id="bg-standby" title="Beogram standby"><i class="ti ti-power"></i></button></div>
+     <div class="card-header"><i class="ti ti-disc" id="bg-card-icon"></i><h2 id="bg-card-title">Beogram</h2><button class="hdr-btn" id="bg-standby" title="Beogram standby"><i class="ti ti-power"></i></button></div>
     <div class="status-row">
       <span class="status-label">State</span>
       <span class="badge disconnected" id="bg-state"><i class="ti ti-circle"></i>Unknown</span>
@@ -114,11 +114,11 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="ip-chip" id="bg-track">-</span>
     </div>
     <div class="input-row" style="margin-top:8px;justify-content:center">
-      <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back"></i></button>
+      <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back" id="bg-prev-icon"></i></button>
       <button class="btn" id="bg-playpause" title="Play"><i class="ti ti-player-play" id="bg-playpause-icon"></i></button>
       <button class="btn" id="bg-play" title="Play"><i class="ti ti-player-play"></i></button>
-      <button class="btn" id="bg-stop" title="Lift tonearm"><i class="ti ti-chevron-up"></i></button> 
-      <button class="btn" id="bg-next" title="Next track"><i class="ti ti-player-skip-forward"></i></button>
+      <button class="btn" id="bg-stop" title="Stop"><i class="ti ti-chevron-up" id="bg-stop-icon"></i></button> 
+      <button class="btn" id="bg-next" title="Next track"><i class="ti ti-player-skip-forward" id="bg-next-icon"></i></button>
     </div>
   </div>
 
@@ -129,6 +129,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <div class="seg" id="deviceTypeSeg">
         <button data-type="cd" id="dtype-cd">CD</button>
         <button data-type="record" id="dtype-record">Turntable</button>
+        <button data-type="tape" id="dtype-tape">Tape</button>
       </div>
     </div>
   </div>
@@ -534,21 +535,53 @@ document.getElementById('halo-unlink-btn').addEventListener('click',function(){
 });
 
 let currentDeviceType='';
+
+// Title, icon, and standby label per deck type.
+const DECK_INFO={
+  cd:    ['Beogram CD','ti-disc'],
+  record:['Beogram','ti-vinyl'],
+  tape:  ['Beocord','ti-device-audio-tape']
+};
+
 function applyDeviceType(t){
   currentDeviceType=t;
   document.getElementById('dtype-cd').className=t==='cd'?'active':'';
   document.getElementById('dtype-record').className=t==='record'?'active':'';
-  let rec=(t==='record');
-  document.getElementById('bg-playpause').style.display=rec?'none':'inline-flex';
-  document.getElementById('bg-play').style.display=rec?'inline-flex':'none';
-  document.getElementById('bg-stop').style.display=rec?'inline-flex':'none';
-  // A turntable reports no track numbers, so the row would just say "-".
-  document.getElementById('bg-track-row').style.display=rec?'none':'flex';
+  document.getElementById('dtype-tape').className=t==='tape'?'active':'';
+  let cd=(t==='cd'),tape=(t==='tape');
+  // CD: one toggling button, since its reported state is trustworthy.
+  // Turntable/tape: separate Play and Stop.
+  document.getElementById('bg-playpause').style.display=cd?'inline-flex':'none';
+  document.getElementById('bg-play').style.display=cd?'none':'inline-flex';
+  document.getElementById('bg-stop').style.display=cd?'none':'inline-flex';
+  // Only a CD player reports track numbers.
+  document.getElementById('bg-track-row').style.display=cd?'flex':'none';
+  // Tape cues rather than skipping, and stops rather than lifting.
+  document.getElementById('bg-prev-icon').className=tape?'ti ti-chevrons-left':'ti ti-player-skip-back';
+  document.getElementById('bg-next-icon').className=tape?'ti ti-chevrons-right':'ti ti-player-skip-forward';
+  document.getElementById('bg-prev').title=tape?'Cue backwards':'Previous track';
+  document.getElementById('bg-next').title=tape?'Cue forward':'Next track';
+  document.getElementById('bg-stop-icon').className=tape?'ti ti-player-stop':'ti ti-chevron-up';
+  document.getElementById('bg-stop').title=tape?'Stop':'Lift tonearm';
+  let info=DECK_INFO[t]||DECK_INFO.cd;
+  document.getElementById('bg-card-title').textContent=info[0];
+  document.getElementById('bg-card-icon').className='ti '+info[1];
+  document.getElementById('bg-standby').title=info[0]+' standby';
 }
 applyDeviceType('cd');
 document.getElementById('deviceTypeSeg').addEventListener('click',function(e){
   let btn=e.target.closest('button');
   if(!btn||btn.dataset.type===currentDeviceType)return;
+  // A tape deck speaks a different command set than a CD player or
+  // turntable, so crossing that line means a different machine is wired
+  // up — worth confirming, since the wrong choice silently does nothing.
+  let wasTape=(currentDeviceType==='tape'),willBeTape=(btn.dataset.type==='tape');
+  if(currentDeviceType&&wasTape!==willBeTape){
+    let msg=willBeTape
+      ? 'Tape decks use a different Datalink command set. Only select this if a tape deck is connected \u2014 commands sent to a CD player or turntable will not work.'
+      : 'CD players and turntables use a different Datalink command set than tape decks. Only select this if that deck is connected.';
+    if(!confirm(msg+'\n\nContinue?'))return;
+  }
   applyDeviceType(btn.dataset.type);
   fetch('/update-devicetype?type='+btn.dataset.type);
 });

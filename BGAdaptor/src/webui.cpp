@@ -438,8 +438,10 @@ void handleUpdateFeature() {
 void handleUpdateDeviceType() {
     if (server.hasArg("type")) {
         String value = server.arg("type");
-        if (value == "cd" || value == "record") {
-            deviceType = (value == "record") ? DEVICE_RECORD : DEVICE_CD;
+        if (value == "cd" || value == "record" || value == "tape") {
+            deviceType = (value == "record") ? DEVICE_RECORD
+                       : (value == "tape")   ? DEVICE_TAPE
+                                             : DEVICE_CD;
             preferences.putString("deviceType", value);
             // The Halo layout differs between the two, so push the new
             // configuration straight away — no restart needed.
@@ -464,7 +466,7 @@ void handleStatus() {
     jsonResponse += "\"halo_serial\":\"" + haloSerial + "\",";
     jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
-    jsonResponse += "\"device_type\":\"" + String(deviceType == DEVICE_RECORD ? "record" : "cd") + "\",";
+    jsonResponse += "\"device_type\":\"" + String(deviceType == DEVICE_RECORD ? "record" : deviceType == DEVICE_TAPE ? "tape" : "cd") + "\",";
     jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
     jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
     jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";            

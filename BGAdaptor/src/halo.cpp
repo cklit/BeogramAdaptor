@@ -51,10 +51,20 @@ static String haloButton(const char* id, const char* label) {
 void sendConfigToHalo() {
     // Record players get a dedicated Stop button; CD players use a single
     // button that toggles, since their reported state is trustworthy.
-    String buttons = haloButton(HALO_BTN_PREV, "Prev") + "," +
+    const char* pageTitle = (deviceType == DEVICE_TAPE)   ? "Beocord"
+                          : (deviceType == DEVICE_RECORD) ? "Beogram"
+                                                          : "Beogram CD";    
+    const char* prevLabel = (deviceType == DEVICE_TAPE) ? "Rew" : "Prev";
+    const char* nextLabel = (deviceType == DEVICE_TAPE) ? "Fwd" : "Next";
+
+    String buttons = haloButton(HALO_BTN_PREV, prevLabel) + "," +
                      haloButton(HALO_BTN_PLAY, "Play") + ",";
+    // CD trusts its own reported state, so one toggling button is enough.
+    // A turntable never reports a lifted tonearm and a tape deck's stop is
+    // a distinct action — both get a dedicated second button.
     if (deviceType == DEVICE_RECORD) buttons += haloButton(HALO_BTN_STOP, "Lift") + ",";
-    buttons += haloButton(HALO_BTN_NEXT, "Next");
+    if (deviceType == DEVICE_TAPE)   buttons += haloButton(HALO_BTN_STOP, "Stop") + ",";
+    buttons += haloButton(HALO_BTN_NEXT, nextLabel);
 
     String jsonMessage = String("{") +
         "\"configuration\": {" +
@@ -62,7 +72,7 @@ void sendConfigToHalo() {
             "\"id\": \"ae32d6dd-3300-4725-a6a0-2df6b5f8326f\"," +
             "\"pages\": [" +
                 "{" +
-                    "\"title\": \"Beogram\"," +
+                    "\"title\": \"" + String(pageTitle) + "\"," +
                     "\"id\": \"" + HALO_PAGE_ID + "\"," +
                     "\"buttons\": [" + buttons + "]" +
                 "}" +
@@ -89,11 +99,12 @@ void sendConfigToHalo() {
 //          label would end up lying about what the button does.
 void updateHaloPlayback(bool playing, const char* subtitle) {
     const char* title = playing ? "Playing" : "Stopped";
-    if (deviceType == DEVICE_RECORD) {
-        // Only the Play button carries the status title; the Stop button
+    if (deviceType != DEVICE_CD) {
+        // Only the Play button carries the status title; the second button
         // keeps an empty one so the state is stated once, not twice.
         sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, "Play", subtitle);
-        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Lift", subtitle);
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, "",
+                         (deviceType == DEVICE_TAPE) ? "Stop" : "Lift", subtitle);
     } else {
         sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, playing ? "Stop" : "Play", subtitle);
     }
@@ -101,7 +112,7 @@ void updateHaloPlayback(bool playing, const char* subtitle) {
 
 void updateHaloSubtitle(const char* subtitle) {
     sendButtonUpdate(HALO_BTN_PLAY, nullptr, nullptr, nullptr, subtitle);
-    if (deviceType == DEVICE_RECORD) {
+    if (deviceType != DEVICE_CD) {
         sendButtonUpdate(HALO_BTN_STOP, nullptr, nullptr, nullptr, subtitle);
     }
 }
@@ -123,8 +134,9 @@ void onMessageCallback(WebsocketsMessage message) {
         Serial.print("Halo button pressed: ");
 
         if (buttonID == HALO_BTN_PLAY) {
-            // Record players have their own Stop button, so Play is always Play.
-            if (deviceType == DEVICE_RECORD || playbackState != PLAYING) {
+            // Turntables and tape decks have their own Stop button, so Play
+            // is always Play there.
+            if (deviceType != DEVICE_CD || playbackState != PLAYING) {
               Serial.println("PLAY");
               sendHexCommand(PLAY);
             } else {

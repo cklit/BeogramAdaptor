@@ -14,6 +14,18 @@ BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
         Serial.print("Length: ");
         Serial.println(length);
     }
+    // A tape deck reports different bytes and has no track numbers, so it
+    // gets its own lookup — mapped onto the canonical feedback values so
+    // processBuffer() needs no special case.
+    if (deviceType == DEVICE_TAPE) {
+        if (length == 2 && sequence[0] == sequence[1]) {
+            if (sequence[0] == TAPE_PLAYING_FB) return PLAYING_FB;
+            if (sequence[0] == TAPE_STOPPED_FB) return STOPPED_FB;
+            if (sequence[0] == TAPE_STANDBY_FB) return STANDBY_FB;
+        }
+        return UNKNOWN_STATE;
+    }
+
     if (length == 5) {
         if (sequence[0] == 0x78 && sequence[4] == 0x7D) return TRACK5;
         if (sequence[0] == 0x78 && sequence[4] == 0x7E) return TRACK6;
@@ -44,10 +56,25 @@ BeogramFeedback identifyState(const uint8_t* sequence, size_t length) {
     return UNKNOWN_STATE;
 }
 
+// Translate a canonical command to the byte this deck actually expects.
+// Only the transport commands differ; anything else passes through.
+static uint8_t deckCommandByte(BeogramCommand command) {
+    if (deviceType != DEVICE_TAPE) return command;
+    switch (command) {
+        case PLAY:     return TAPE_PLAY;
+        case STOP:     return TAPE_STOP;
+        case STANDBY:  return TAPE_STANDBY;
+        case NEXT:     return TAPE_NEXT;
+        case PREVIOUS: return TAPE_PREVIOUS;
+        default:       return command;
+    }
+}
+
 void sendHexCommand(BeogramCommand command) {
-    Serial1.write(command);
+    uint8_t byte = deckCommandByte(command);
+    Serial1.write(byte);
     delayMicroseconds(49991);
-    Serial1.write(command);
+    Serial1.write(byte);
 }
 
 void sendPlayAfterDelay() {
