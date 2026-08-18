@@ -200,6 +200,13 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="badge disconnected" id="halo-ws-status"><i class="ti ti-circle"></i>Disconnected</span>
     </div>
     <div class="divider"></div>
+    <div class="select-row" style="margin-bottom:.75rem">
+      <label>Deck type</label>
+      <div class="seg" id="deviceTypeSeg">
+        <button data-type="cd" id="dtype-cd">CD</button>
+        <button data-type="record" id="dtype-record">Turntable</button>
+      </div>
+    </div>
     <div class="toggle-row">
       <span>Activate controls when Halo wakes up</span>
       <label class="toggle">
@@ -321,6 +328,7 @@ function updateStatus(){
     setBadge(document.getElementById('mqtt-status'),d.mqtt_connected);
     document.getElementById('fw-version').textContent=d.firmware;
     document.getElementById('featureToggle').checked=d.feature_enabled;
+    if(d.device_type&&d.device_type!==currentDeviceType)applyDeviceType(d.device_type);
     document.getElementById('sourceSelect').value=d.trigger_source;
 
     if(!bgWs||bgWs.readyState!==1)renderBeogram(d.beogram_state,d.beogram_track,d.beogram_playing);
@@ -495,6 +503,19 @@ document.getElementById('halo-discover-results').addEventListener('change',funct
 
 document.getElementById('halo-unlink-btn').addEventListener('click',function(){
   fetch('/update-halo?haloIP=').then(updateStatus);
+});
+
+let currentDeviceType='';
+function applyDeviceType(t){
+  currentDeviceType=t;
+  document.getElementById('dtype-cd').className=t==='cd'?'active':'';
+  document.getElementById('dtype-record').className=t==='record'?'active':'';
+}
+document.getElementById('deviceTypeSeg').addEventListener('click',function(e){
+  let btn=e.target.closest('button');
+  if(!btn||btn.dataset.type===currentDeviceType)return;
+  applyDeviceType(btn.dataset.type);
+  fetch('/update-devicetype?type='+btn.dataset.type);
 });
 
 document.getElementById('featureToggle').addEventListener('change',function(){

@@ -126,14 +126,14 @@ void processSSE(String message) {
                 sendHexCommand(PLAY);
                 Serial.println("Sent PLAY command to Beogram");
                 if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+                    updateHaloPlayback(true);
                 } 
             } else if (key == "Stop") {
                 Serial.println("✅ Received Control/Stop!");
                 playbackState = PAUSED;
                 sendHexCommand(STOP);
                 if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play"); 
+                    updateHaloPlayback(false); 
                 }                
                 Serial.println("Sent STOP command to Beogram");
             } else if (key == "Wind") {
@@ -168,7 +168,7 @@ void processSSE(String message) {
             playbackState = STOPPED;
             sendHexCommand(STANDBY);
             if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
+                updateHaloPlayback(false, "");  
             }                    
             Serial.println("Sent STBY command to Beogram");
         } else {
@@ -196,7 +196,7 @@ void processSSE(String message) {
                 Serial.println("❌ Line-in deactivated!");
                 lineInActive = false;
                 if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");  
+                    updateHaloPlayback(false, "");  
                 }                             
                 if (playbackState == PLAYING) {
                     playbackState = PAUSED;

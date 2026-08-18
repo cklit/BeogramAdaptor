@@ -16,6 +16,7 @@ using namespace websockets;
 
 extern bool debugSerial;
 extern Platform platform;
+extern DeviceType deviceType;
 
 // Timers
 extern unsigned long sseLastReconnectAttempt;

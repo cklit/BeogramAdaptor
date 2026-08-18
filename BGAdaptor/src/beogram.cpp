@@ -77,7 +77,7 @@ void processBuffer(BeogramFeedback state) {
             bgPlaying.setState(true);
         }
         if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+            updateHaloPlayback(true);
         }       
         if (platform == PLATFORM_MOZART) {
             if (!lineInActive) {
@@ -105,7 +105,7 @@ void processBuffer(BeogramFeedback state) {
                 sendHttpRequest("/api/v1/playback/command/stop", "POST");
             }
             if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", " ");
+                updateHaloPlayback(false, " ");
             }
         }        
     } else if (state == EJECTED_FB) {
@@ -118,7 +118,7 @@ void processBuffer(BeogramFeedback state) {
             bgPlaying.setState(false);    
         }
         if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "Tray ejected");  
+            updateHaloPlayback(false, "Tray ejected");  
         }            
         if (platform == PLATFORM_MOZART && lineInActive) {
             sendHttpRequest("/api/v1/playback/command/stop", "POST");
@@ -131,7 +131,7 @@ void processBuffer(BeogramFeedback state) {
             bgTrack.setValue("14+");  
         }
         if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, "Track 14+");
+            updateHaloSubtitle("Track 14+");
         }
     } else if (state != UNKNOWN_STATE && playbackState == PLAYING) {
         Serial.print("Track identified: ");
@@ -139,7 +139,7 @@ void processBuffer(BeogramFeedback state) {
         if (haloClient.available()) {
             char subtitle[20];
             sprintf(subtitle, "Track %d", state);
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, nullptr, nullptr, subtitle);
+            updateHaloSubtitle(subtitle);
         }     
         char trackNumber[20];
         sprintf(trackNumber, "%d", state);

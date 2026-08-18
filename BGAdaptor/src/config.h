@@ -16,6 +16,12 @@
 //   Mozart → WebSockets on :9339 (+ /remoteControl) + /api/v1 REST
 enum Platform { PLATFORM_ASE, PLATFORM_MOZART };
 
+// Which kind of deck is connected. CD players report their true state, so
+// one button can toggle Play/Stop. Record players report "playing" but
+// never report the tonearm being lifted, so a toggle would get out of sync
+// — those get dedicated Play and Stop buttons instead.
+enum DeviceType { DEVICE_CD, DEVICE_RECORD };
+
 // ── Network constants ───────────────────────────────────────────────
 
 static const int SSE_PORT = 8080;           // ASE notification stream

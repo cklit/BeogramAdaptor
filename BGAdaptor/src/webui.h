@@ -17,5 +17,6 @@ void handleMqttReset();
 void handleMqttUpdate();
 void handleMqttConfig();
 void handleUpdateFeature();
+void handleUpdateDeviceType();
 void handleStatus();
 void handleResetWifi();

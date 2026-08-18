@@ -435,6 +435,22 @@ void handleUpdateFeature() {
     server.send(200, "text/plain", "OK");
 }
 
+void handleUpdateDeviceType() {
+    if (server.hasArg("type")) {
+        String value = server.arg("type");
+        if (value == "cd" || value == "record") {
+            deviceType = (value == "record") ? DEVICE_RECORD : DEVICE_CD;
+            preferences.putString("deviceType", value);
+            // The Halo layout differs between the two, so push the new
+            // configuration straight away — no restart needed.
+            if (haloClient.available()) sendConfigToHalo();
+            server.send(200, "text/plain", "OK");
+            return;
+        }
+    }
+    server.send(400, "text/plain", "Invalid device type");
+}
+
 void handleStatus() {
     String jsonResponse = "{";
     jsonResponse += "\"platform\":\"" + String(platform == PLATFORM_MOZART ? "mozart" : "ase") + "\",";
@@ -448,6 +464,7 @@ void handleStatus() {
     jsonResponse += "\"halo_serial\":\"" + haloSerial + "\",";
     jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
+    jsonResponse += "\"device_type\":\"" + String(deviceType == DEVICE_RECORD ? "record" : "cd") + "\",";
     jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
     jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
     jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";            
@@ -546,6 +563,7 @@ void registerWebRoutes() {
     server.on("/update", HTTP_GET, handleUpdate);
     server.on("/update-halo", HTTP_GET, handleUpdateHalo);
     server.on("/update-feature", HTTP_GET, handleUpdateFeature);
+    server.on("/update-devicetype", HTTP_GET, handleUpdateDeviceType);
     server.on("/status", handleStatus);
     server.on("/update-ota", HTTP_POST, []() {
         server.send(200, "text/plain", (Update.hasError()) ? "Update Failed!" : "Update Successful! Rebooting...");

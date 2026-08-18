@@ -2,6 +2,7 @@
 
 bool debugSerial = false;
 Platform platform = PLATFORM_ASE;
+DeviceType deviceType = DEVICE_CD;
 
 unsigned long sseLastReconnectAttempt = 0;
 unsigned long sseReconnectDelay = 1000;

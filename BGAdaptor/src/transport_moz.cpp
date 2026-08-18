@@ -13,12 +13,12 @@ void handleHttpResponse(const String& endpoint, const String& response) {
             String source = doc["source"]["id"].as<String>();
             String state = doc["state"]["value"].as<String>();
             if (source == triggerSource && state == "started" && haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+                updateHaloPlayback(true);
                 lineInActive = true;
                 playbackState = PLAYING;
                 Serial.println("Polled Playing state from product");
             } else {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
+                updateHaloPlayback(false);
                 Serial.println("Polled Stopped state from product");
             }
         } else {
@@ -92,14 +92,14 @@ void processWebSocketMessage(const String& message) {
                 sendHexCommand(STOP);
                 Serial.println("⏹️ Sent STOP command to Beogram to Pause playback.");
                 if (haloClient.available()) {
-                    sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");
+                    updateHaloPlayback(false, "");
                 }
             }
         }
     } else if (message.indexOf("\"value\":\"networkStandby\"") != -1) {
         playbackState = STOPPED;
         if (haloClient.available()) {
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play", "");
+            updateHaloPlayback(false, "");
         }
         sendHexCommand(STANDBY);
         Serial.println("🛑 Standby command detected on websocket. Sent STBY command to Beogram");
@@ -110,7 +110,7 @@ void processWebSocketMessage(const String& message) {
                 if (playbackState != PLAYING) {
                     sendHexCommand(PLAY);
                     if (haloClient.available()) {
-                        sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
+                        updateHaloPlayback(true);
                     }
                     Serial.println("▶️ Product changed state to Play from Pause or Standby. Sent PLAY command to Beogram");
                 }
@@ -119,14 +119,14 @@ void processWebSocketMessage(const String& message) {
             playbackState = PAUSED;
             sendHexCommand(STOP);
             if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
+                updateHaloPlayback(false);
             }
             Serial.println("⏸️ Product changed state to Stopped. Sent STOP command to Beogram");
         } else if (message.indexOf("\"value\":\"paused\"") != -1) {
             playbackState = PAUSED;
             sendHexCommand(STOP);
             if (haloClient.available()) {
-                sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
+                updateHaloPlayback(false);
             }
             Serial.println("⏸️ Product changed state to Paused. Sent STOP command to Beogram");
         } else if (message.indexOf("\"button\":\"Next\"") != -1) {

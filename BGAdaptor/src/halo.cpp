@@ -3,6 +3,13 @@
 #include "transport.h"
 #include <ArduinoJson.h>
 
+const char* const HALO_PAGE_ID    = "67461a06-74b6-4114-a808-ab90e8abc03f";
+const char* const HALO_BTN_PREV    = "032ed0e4-c61f-4d22-af95-740741217d55";
+const char* const HALO_BTN_PLAY    = "872b4893-bfdf-4d51-bb53-b5738149fc61";
+const char* const HALO_BTN_STOP    = "5c1f9a7e-2b64-4de3-9f10-8a7c3d6e41b2";
+const char* const HALO_BTN_NEXT    = "03481fcc-e2cc-47ba-bcae-6152bbf93692";
+const char* const HALO_BTN_STANDBY = "03481fcc-e2cc-47ba-bcae-6152bbf93482";
+
 ButtonUpdate pendingUpdate = {"", false, 0}; // Track pending button updates
 
 void sendButtonUpdate(const char* buttonID, const char* state, const char* title, const char* text, const char* subtitle, int value) {
@@ -29,44 +36,38 @@ void sendPageUpdate(const char* pageID, const char* buttonID) {
     haloClient.send(output);
 }
 
+// Build one button entry for the Halo configuration.
+static String haloButton(const char* id, const char* label) {
+    return String("{") +
+        "\"id\": \"" + id + "\"," +
+        "\"title\": \"\"," +
+        "\"subtitle\": \"\"," +
+        "\"value\": 100," +
+        "\"state\": \"inactive\"," +
+        "\"content\": { \"text\": \"" + label + "\" }" +
+    "}";
+}
+
 void sendConfigToHalo() {
-    String jsonMessage = "{"
-        "\"configuration\": {"
-            "\"version\": \"1.0.1\","
-            "\"id\": \"ae32d6dd-3300-4725-a6a0-2df6b5f8326f\","
-            "\"pages\": ["
-                "{"
-                    "\"title\": \"Beogram\","
-                    "\"id\": \"67461a06-74b6-4114-a808-ab90e8abc03f\","
-                    "\"buttons\": ["
-                        "{"
-                            "\"id\": \"032ed0e4-c61f-4d22-af95-740741217d55\","
-                            "\"title\": \"\","
-                            "\"subtitle\": \"\","
-                            "\"value\": 100,"
-                            "\"state\": \"inactive\","
-                            "\"content\": { \"text\": \"Prev\" }"
-                        "},"
-                        "{"
-                            "\"id\": \"872b4893-bfdf-4d51-bb53-b5738149fc61\","
-                            "\"title\": \"\","
-                            "\"subtitle\": \"\","
-                            "\"value\": 100,"
-                            "\"state\": \"inactive\","
-                            "\"content\": { \"text\": \"Play\" }"
-                        "},"
-                        "{"
-                            "\"id\": \"03481fcc-e2cc-47ba-bcae-6152bbf93692\","
-                            "\"title\": \"\","
-                            "\"subtitle\": \"\","
-                            "\"value\": 100,"
-                            "\"state\": \"inactive\","
-                            "\"content\": { \"text\": \"Next\" }"
-                        "}"
-                    "]"
-                "}"
-            "]"
-        "}"
+    // Record players get a dedicated Stop button; CD players use a single
+    // button that toggles, since their reported state is trustworthy.
+    String buttons = haloButton(HALO_BTN_PREV, "Prev") + "," +
+                     haloButton(HALO_BTN_PLAY, "Play") + ",";
+    if (deviceType == DEVICE_RECORD) buttons += haloButton(HALO_BTN_STOP, "Stop") + ",";
+    buttons += haloButton(HALO_BTN_NEXT, "Next");
+
+    String jsonMessage = String("{") +
+        "\"configuration\": {" +
+            "\"version\": \"1.0.1\"," +
+            "\"id\": \"ae32d6dd-3300-4725-a6a0-2df6b5f8326f\"," +
+            "\"pages\": [" +
+                "{" +
+                    "\"title\": \"Beogram\"," +
+                    "\"id\": \"" + HALO_PAGE_ID + "\"," +
+                    "\"buttons\": [" + buttons + "]" +
+                "}" +
+            "]" +
+        "}" +
     "}";
 
     haloClient.send(jsonMessage);
@@ -78,6 +79,30 @@ void sendConfigToHalo() {
     } else {
         // ASE has no equivalent poll — derive the button state from lineInActive
         haloUpdate = STATE;
+    }
+}
+
+// Reflect playback state on the Halo.
+//  CD:     one button, its label toggles between Play and Stop.
+//  Record: two buttons with fixed labels; only the status title changes,
+//          because a lifted tonearm is never reported and a toggling
+//          label would end up lying about what the button does.
+void updateHaloPlayback(bool playing, const char* subtitle) {
+    const char* title = playing ? "Playing" : "Stopped";
+    if (deviceType == DEVICE_RECORD) {
+        // Only the Play button carries the status title; the Stop button
+        // keeps an empty one so the state is stated once, not twice.
+        sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, "Play", subtitle);
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Stop", subtitle);
+    } else {
+        sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, playing ? "Stop" : "Play", subtitle);
+    }
+}
+
+void updateHaloSubtitle(const char* subtitle) {
+    sendButtonUpdate(HALO_BTN_PLAY, nullptr, nullptr, nullptr, subtitle);
+    if (deviceType == DEVICE_RECORD) {
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, nullptr, nullptr, subtitle);
     }
 }
 
@@ -97,21 +122,25 @@ void onMessageCallback(WebsocketsMessage message) {
         String buttonID = doc["event"]["id"].as<String>();
         Serial.print("Halo button pressed: ");
 
-        if (buttonID == "872b4893-bfdf-4d51-bb53-b5738149fc61") {
-            if (playbackState != PLAYING) {
+        if (buttonID == HALO_BTN_PLAY) {
+            // Record players have their own Stop button, so Play is always Play.
+            if (deviceType == DEVICE_RECORD || playbackState != PLAYING) {
               Serial.println("PLAY");
               sendHexCommand(PLAY);
             } else {
               Serial.println("STOP");
               sendHexCommand(STOP);
             }
-        } else if (buttonID == "032ed0e4-c61f-4d22-af95-740741217d55") {
+        } else if (buttonID == HALO_BTN_STOP) {
+            Serial.println("STOP");
+            sendHexCommand(STOP);
+        } else if (buttonID == HALO_BTN_PREV) {
             Serial.println("PREV");
             sendHexCommand(PREVIOUS);
-        } else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93692") {
+        } else if (buttonID == HALO_BTN_NEXT) {
             Serial.println("NEXT");
             sendHexCommand(NEXT);
-        } else if (buttonID == "03481fcc-e2cc-47ba-bcae-6152bbf93482") {
+        } else if (buttonID == HALO_BTN_STANDBY) {
             Serial.println("STBY");
             sendHexCommand(STANDBY);
         } else {
@@ -163,16 +192,11 @@ void connectToHalo() {
 void activateHaloPage() {
     if (haloClient.available() && haloUpdate == PAGE && (millis() - haloActionTime >= haloActionDelay)) {
         haloUpdate = NONE;  
-        sendPageUpdate("67461a06-74b6-4114-a808-ab90e8abc03f", "872b4893-bfdf-4d51-bb53-b5738149fc61");
+        sendPageUpdate(HALO_PAGE_ID, HALO_BTN_PLAY);
     }
 
     if (haloClient.available() && haloUpdate == STATE && (millis() - haloActionTime >= haloActionDelay)) {
-        if (!lineInActive) {
-            haloUpdate = NONE;
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Stopped", "Play");
-        } else {
-            haloUpdate = NONE;
-            sendButtonUpdate("872b4893-bfdf-4d51-bb53-b5738149fc61", nullptr, "Playing", "Stop");
-        }
+        haloUpdate = NONE;
+        updateHaloPlayback(lineInActive);
     }
 }
