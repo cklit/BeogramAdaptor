@@ -53,7 +53,7 @@ void sendConfigToHalo() {
     // button that toggles, since their reported state is trustworthy.
     String buttons = haloButton(HALO_BTN_PREV, "Prev") + "," +
                      haloButton(HALO_BTN_PLAY, "Play") + ",";
-    if (deviceType == DEVICE_RECORD) buttons += haloButton(HALO_BTN_STOP, "Stop") + ",";
+    if (deviceType == DEVICE_RECORD) buttons += haloButton(HALO_BTN_STOP, "Lift") + ",";
     buttons += haloButton(HALO_BTN_NEXT, "Next");
 
     String jsonMessage = String("{") +
@@ -93,7 +93,7 @@ void updateHaloPlayback(bool playing, const char* subtitle) {
         // Only the Play button carries the status title; the Stop button
         // keeps an empty one so the state is stated once, not twice.
         sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, "Play", subtitle);
-        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Stop", subtitle);
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Lift", subtitle);
     } else {
         sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, playing ? "Stop" : "Play", subtitle);
     }
