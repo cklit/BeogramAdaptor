@@ -54,6 +54,7 @@ when to send play, stop and standby commands to the Beogram.
 Communication over Data Link is bidirectional: the adaptor sends
 commands, but also receives status back from the Beogram, such as playing
 state and, for CD players, the current track number.
+_Please note that record players do not report if the needle is lifted. Only Playing and Stopped._
 
 The ESP32 is powered by a separate USB power supply or an available USB port of your Bang & Olufsen product (if applicable).
 
