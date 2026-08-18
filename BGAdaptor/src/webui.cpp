@@ -70,7 +70,7 @@ void handleOTAResult() {
         "border-radius:8px;background:#1D9E75;color:#fff;text-decoration:none}</style></head><body><div>";
     page += failed
         ? "<h2>Update failed</h2><p>The firmware was not installed :(.</p>"
-        : "<h2>Update successful</h2><p>Restarting the adaptor. You will be redirected automatically in a few seconds.</p>";
+        : "<h2>Update successful</h2><p>Restarting the BGAdaptor. You will be redirected automatically in a few seconds.</p>";
     page += "<a href='/'>Back to main page</a></div></body></html>";
 
     server.send(200, "text/html", page);
