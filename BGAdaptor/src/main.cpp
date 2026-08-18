@@ -289,6 +289,22 @@ void loop() {
         } else if (input == "debug 0") {
             debugSerial = false;
             Serial.println("Debug mode disabled");
-        }
+        } else if (input.startsWith("hex ")) {
+            // Send an arbitrary Datalink command, e.g. "hex 0x2A" or "hex 2a".
+            // Handy for probing undocumented Beogram commands from the monitor.
+            debugSerial = true;
+            String arg = input.substring(4);
+            arg.trim();
+            if (arg.startsWith("0x") || arg.startsWith("0X")) arg = arg.substring(2);
+
+            char* end;
+            long value = strtol(arg.c_str(), &end, 16);
+            if (arg.length() == 0 || *end != '\0' || value < 0 || value > 0xFF) {
+                Serial.println("Usage: hex <00-FF>, e.g. hex 0x2A");
+            } else {
+                Serial.printf("Sending 0x%02X to the Beogram\n", (uint8_t)value);
+                sendHexCommand((BeogramCommand)value);
+            }
+        }    
     }
 }
