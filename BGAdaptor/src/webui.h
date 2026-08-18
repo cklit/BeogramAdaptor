@@ -9,6 +9,7 @@ void registerWebRoutes();
 
 void handleRoot();
 void handleOTAUpdate();
+void handleOTAResult();
 void handleUpdate();
 void handleUpdateHalo();
 void handleUpdateTriggerSource();

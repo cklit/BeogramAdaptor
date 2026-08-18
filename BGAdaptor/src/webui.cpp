@@ -50,6 +50,35 @@ void handleOTAUpdate() {
     }
 }
 
+// Result page shown after an OTA upload finishes. Refreshes after 12 sec.
+void handleOTAResult() {
+    bool failed = Update.hasError();
+    String page = String("<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>BGAdaptor</title>");
+    // Only bounce back automatically on success — on failure the adaptor
+    // isn't restarting, so there's nothing to wait for.
+    if (!failed) page += "<meta http-equiv='refresh' content='12;url=/'>";
+    page += "<style>body{font-family:system-ui,sans-serif;background:#f0f0f0;color:#111;"
+        "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center}"
+        "@media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}"
+        "div{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:2rem;max-width:340px}"
+        "@media(prefers-color-scheme:dark){div{background:#252525;border-color:#333}}"
+        "h2{font-size:16px;font-weight:500;margin:0 0 .5rem}"
+        "p{font-size:13px;color:#888;margin:0 0 1.25rem}"
+        "a{display:inline-block;height:36px;line-height:36px;padding:0 14px;font-size:13px;"
+        "border-radius:8px;background:#1D9E75;color:#fff;text-decoration:none}</style></head><body><div>";
+    page += failed
+        ? "<h2>Update failed</h2><p>The firmware was not written. The adaptor is still running the previous version.</p>"
+        : "<h2>Update successful</h2><p>The adaptor is restarting. This page returns automatically in a few seconds.</p>";
+    page += "<a href='/'>Back to front page</a></div></body></html>";
+
+    server.send(200, "text/html", page);
+    delay(1000);
+
+    if (!failed) ESP.restart();
+}
+
 void handleUpdate() {
     if (server.hasArg("productIP")) {
         String newIP = server.arg("productIP");
@@ -567,10 +596,6 @@ void registerWebRoutes() {
     server.on("/update-feature", HTTP_GET, handleUpdateFeature);
     server.on("/update-devicetype", HTTP_GET, handleUpdateDeviceType);
     server.on("/status", handleStatus);
-    server.on("/update-ota", HTTP_POST, []() {
-        server.send(200, "text/plain", (Update.hasError()) ? "Update Failed!" : "Update Successful! Rebooting...");
-        delay(1000);
-        ESP.restart();
-    }, handleOTAUpdate);
+    server.on("/update-ota", HTTP_POST, handleOTAResult, handleOTAUpdate); 
     server.begin();
 }
