@@ -148,9 +148,9 @@ static const char* htmlPage PROGMEM = R"rawliteral(
 
   <div id="settings-cards">
   <div class="card">
-    <div class="card-header"><i class="ti ti-square-rounded-arrow-right"></i><h2>Deck type</h2></div>
+    <div class="card-header"><i class="ti ti-square-rounded-arrow-right"></i><h2>Type</h2></div>
     <div class="select-row" style="margin-bottom:0">
-      <label>Connected type</label>
+      <label>Connected deck</label>
       <div class="seg" id="deviceTypeSeg">
         <button data-type="cd" id="dtype-cd">CD</button>
         <button data-type="record" id="dtype-record">Turntable</button>
@@ -194,13 +194,15 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">Platform</span>
       <span class="ip-chip" id="product-platform"></span>
     </div>    
-    <div class="status-row">
-      <span class="status-label">IP address</span>
-      <span class="ip-chip" id="product-ip">—</span>
-    </div>
-    <div class="status-row">
-      <span class="status-label">Connection</span>
-      <span class="badge disconnected" id="product-status"><i class="ti ti-circle"></i>Disconnected</span>
+    <div id="product-linked-rows" style="display:none">
+      <div class="status-row">
+        <span class="status-label">IP address</span>
+        <span class="ip-chip" id="product-ip">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Status</span>
+        <span class="badge disconnected" id="product-status"><i class="ti ti-circle"></i>Disconnected</span>
+      </div>
     </div>
     <div class="divider"></div>
     <div class="select-row" style="margin-bottom:0">
@@ -237,21 +239,23 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">Serial number</span>
       <span class="ip-chip" id="halo-serial"></span>
     </div>
-    <div class="status-row">
-      <span class="status-label">IP address</span>
-      <span class="ip-chip" id="halo-ip">—</span>
-    </div>
-    <div class="status-row" style="margin-bottom:0">
-      <span class="status-label">Connection</span>
-      <span class="badge disconnected" id="halo-ws-status"><i class="ti ti-circle"></i>Disconnected</span>
-    </div>
-    <div class="divider"></div>
-    <div class="toggle-row">
-      <span>Activate controls when Halo wakes up</span>
-      <label class="toggle">
-        <input type="checkbox" id="featureToggle">
-        <span class="toggle-slider"></span>
-      </label>
+    <div id="halo-linked-rows" style="display:none">
+      <div class="status-row">
+        <span class="status-label">IP address</span>
+        <span class="ip-chip" id="halo-ip">—</span>
+      </div>
+      <div class="status-row" style="margin-bottom:0">
+        <span class="status-label">Status</span>
+        <span class="badge disconnected" id="halo-ws-status"><i class="ti ti-circle"></i>Disconnected</span>
+      </div>
+      <div class="divider"></div>
+      <div class="toggle-row">
+        <span>Activate controls when Halo wakes up</span>
+        <label class="toggle">
+          <input type="checkbox" id="featureToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
     <div class="action-row" id="halo-action-row" style="display:none">
       <button class="btn btn-danger" id="halo-unlink-btn">Unlink Halo</button>
@@ -283,6 +287,13 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     </form>
   </div>
 
+  <div class="card">
+    <div class="card-header">
+      <i class="ti ti-refresh-alert"></i>
+      <h2>Reset</h2>
+      <button class="btn btn-danger" id="factory-reset-btn" style="margin-left: auto;">Reset BGAdaptor</button>
+    </div>
+    <p class="hint" style="margin-top:0">Will reset <strong>all settings</strong> &mdash; the connection to the product, Beoremote Halo, Home Assistant, and WiFi credentials will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
   </div>
 
   <div class="card">
@@ -392,6 +403,7 @@ function updateStatus(){
     document.getElementById('product-serial').textContent=sn||'N/A. Manually added';
     document.getElementById('product-platform-row').style.display=hasProduct?'flex':'none';
     document.getElementById('product-platform').textContent=PLATFORM_LABELS[d.platform]||d.platform||'';    
+    document.getElementById('product-linked-rows').style.display=hasProduct?'block':'none';
     document.getElementById('product-connect-form').style.display=hasProduct?'none':'flex';
     document.getElementById('product-action-row').style.display=hasProduct?'flex':'none';
 
@@ -400,6 +412,7 @@ function updateStatus(){
     let hsn=d.halo_serial||'';
     document.getElementById('halo-serial-row').style.display=hasHalo?'flex':'none';
     document.getElementById('halo-serial').textContent=hsn||'N/A. Manually added';
+    document.getElementById('halo-linked-rows').style.display=hasHalo?'block':'none';
     document.getElementById('halo-connect-form').style.display=hasHalo?'none':'flex';
     document.getElementById('halo-action-row').style.display=hasHalo?'flex':'none';
   }).catch(()=>{});
@@ -618,6 +631,11 @@ document.getElementById('deviceTypeSeg').addEventListener('click',function(e){
 
 document.getElementById('featureToggle').addEventListener('change',function(){
   fetch('/update-feature?enabled='+this.checked);
+});
+
+document.getElementById('factory-reset-btn').addEventListener('click',function(){
+  if(!confirm('Reset the adaptor?\n\nAll settings will be cleared \u2014 product, Halo, Home Assistant, deck type and WiFi credentials. The adaptor restarts and creates a BGAdaptor hotspot for setup.'))return;
+  location.href='/settings/factory-reset';
 });
 
 document.getElementById('sourceSelect').addEventListener('change',function(){

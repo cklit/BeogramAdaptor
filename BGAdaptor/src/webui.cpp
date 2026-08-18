@@ -551,6 +551,57 @@ void handleResetWifi() {
     ESP.restart(); 
 }
 
+// Full reset: wipe every stored preference and the WiFi credentials, then
+// restart. The adaptor comes back up in AP mode with nothing configured.
+void handleFactoryReset() {
+    server.send(200, "text/html", R"rawliteral(
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+        <style>
+            *{box-sizing:border-box;margin:0;padding:0}
+            body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
+            @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
+            .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
+            .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
+            .page-title i{font-size:22px;color:#666}
+            .page-title h1{font-size:18px;font-weight:500}
+            .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
+            @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
+            .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
+            .card-header i{font-size:18px;color:#a32d2d}
+            .card-header h2{font-size:15px;font-weight:500}
+            .sub{font-size:13px;color:#888}
+        </style>
+        </head>
+        <body>
+        <div class="page">
+        <div class="page-title">
+            <i class="ti ti-refresh-alert"></i>
+            <h1>Reset</h1>
+        </div>
+        <div class="card">
+            <div class="card-header">
+            <i class="ti ti-settings-off"></i>
+            <h2>All settings cleared</h2>
+            </div>
+            <p class="sub">Restarting in AP mode&hellip; Connect to the <strong>BGAdaptor</strong> hotspot to set it up again.</p>
+        </div>
+        </div>
+        </body>
+        </html>
+        )rawliteral");
+
+    preferences.clear();   // product, Halo, MQTT, deck type, trigger source
+    wm.resetSettings();    // WiFi credentials
+    delay(1000);
+    ESP.restart();
+}
+
 void registerWebRoutes() {
     // ── Web server routes ───────────────────────────────────────────
     server.on("/update-source", HTTP_GET, handleUpdateTriggerSource);
@@ -559,6 +610,7 @@ void registerWebRoutes() {
     server.on("/discover-halo", HTTP_GET, handleDiscoverHalo);
     
     server.on("/settings/reset-wifi", HTTP_GET, handleResetWifi);
+    server.on("/settings/factory-reset", HTTP_GET, handleFactoryReset);
     
     server.on("/mqtt", HTTP_GET, handleMqttConfig);
     server.on("/mqtt", HTTP_POST, handleMqttUpdate);

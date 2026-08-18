@@ -21,3 +21,4 @@ void handleUpdateFeature();
 void handleUpdateDeviceType();
 void handleStatus();
 void handleResetWifi();
+void handleFactoryReset();
