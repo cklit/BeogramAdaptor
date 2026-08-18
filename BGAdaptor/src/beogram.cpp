@@ -188,26 +188,32 @@ void handleSerial1Data() {
 
         if (debugSerial == true) {
           Serial.print("Received byte: 0x");
-          Serial.println(receivedByte, HEX);        
+          Serial.println(receivedByte, HEX);
         }
 
-        // Store the received byte in the buffer
-        buffer[bufferIndex++] = receivedByte;
+        // Add bounds check before storing
+        if (bufferIndex < sizeof(buffer)) {
+            buffer[bufferIndex++] = receivedByte;
+        } else {
+            // Buffer overflow - reset and log
+            Serial.println("Serial buffer overflow - resetting");
+            bufferIndex = 0;
+            buffer[bufferIndex++] = receivedByte;
+        }
 
         lastByteTime = currentTime;
 
-        // Check if we have received 5 bytes
         if (bufferIndex == 5) {
             BeogramFeedback state = identifyState(buffer, bufferIndex);
             processBuffer(state);
-            bufferIndex = 0;  // Reset buffer after processing
+            bufferIndex = 0;  
         }
     }
 
-    // Check if 35 ms have passed since the last byte was received
+    // Check if 55 ms have passed since the last byte was received
     if (millis() - lastByteTime > 55 && bufferIndex > 0) {
         BeogramFeedback state = identifyState(buffer, bufferIndex);
         processBuffer(state);
-        bufferIndex = 0;  // Reset buffer after processing
+        bufferIndex = 0;  
     }
 }

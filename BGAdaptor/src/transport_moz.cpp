@@ -31,20 +31,25 @@ void sendHttpRequest(const String& endpoint, const String& method, const String&
     if (WiFi.status() == WL_CONNECTED) {
         String url = "http://" + productIP + endpoint;
         Serial.println("Sending " + method + " request to: " + url);
-        http.begin(url);
-        if (method == "POST") http.addHeader("Content-Type", "application/json");
-        int httpResponseCode;
-        if (method == "POST") {
-            httpResponseCode = payload.isEmpty() ? http.POST("") : http.POST(payload);
+
+        HTTPClient localHttp;  // Use local instance instead of global
+        if (localHttp.begin(url)) {
+            if (method == "POST") localHttp.addHeader("Content-Type", "application/json");
+            int httpResponseCode;
+            if (method == "POST") {
+                httpResponseCode = payload.isEmpty() ? localHttp.POST("") : localHttp.POST(payload);
+            } else {
+                httpResponseCode = localHttp.GET();
+            }
+            Serial.println("HTTP Response code: " + String(httpResponseCode));
+            if (httpResponseCode == HTTP_CODE_OK) {
+                String response = localHttp.getString();
+                handleHttpResponse(endpoint, response);
+            }
+            localHttp.end();
         } else {
-            httpResponseCode = http.GET();
+            Serial.println("HTTP begin failed");
         }
-        Serial.println("HTTP Response code: " + String(httpResponseCode));
-        if (httpResponseCode == HTTP_CODE_OK) {
-            String response = http.getString();
-            handleHttpResponse(endpoint, response);
-        }
-        http.end();
     } else {
         Serial.println("WiFi not connected, cannot send request.");
     }
