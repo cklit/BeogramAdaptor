@@ -58,6 +58,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     @media(prefers-color-scheme:dark){.btn-highlight{background:#1D9E75;border-color:#1D9E75;color:#fff}.btn-highlight:hover{background:#178a65}}
     .btn-danger{border-color:#f09595;color:#a32d2d}
     .btn-danger:hover{background:#fcebeb}
+    #bg-controls .btn{height:48px;min-width:56px;padding:0;font-size:20px;border-radius:10px}    
     @media(prefers-color-scheme:dark){.btn-danger{border-color:#793333;color:#f09595}.btn-danger:hover{background:#2a1a1a}}
     .select-row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .select-row label{font-size:13px;color:#666}
@@ -113,7 +114,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">Track</span>
       <span class="ip-chip" id="bg-track">-</span>
     </div>
-    <div class="input-row" style="margin-top:8px;justify-content:center">
+    <div class="input-row" id="bg-controls" style="margin-top:8px;justify-content:center;gap:12px">
       <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back" id="bg-prev-icon"></i></button>
       <button class="btn" id="bg-playpause" title="Play"><i class="ti ti-player-play" id="bg-playpause-icon"></i></button>
       <button class="btn" id="bg-play" title="Play"><i class="ti ti-player-play"></i></button>
