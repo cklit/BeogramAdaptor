@@ -83,8 +83,8 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     @media(prefers-color-scheme:dark){.fw-row span{color:#aaa}}
     .fw-val{font-size:12px;font-family:monospace;color:#666;background:#f5f5f5;padding:2px 8px;border-radius:4px}
     @media(prefers-color-scheme:dark){.fw-val{background:#333;color:#bbb}}
-    .file-row{display:flex;align-items:center;gap:8px;margin-top:.75rem}
-    .file-row input[type=file]{font-size:12px;color:#666;flex:1}
+    .file-row{display:flex;align-items:center;gap:8px;margin-top:.75rem;flex-wrap:wrap}
+    .file-row input[type=file]{font-size:12px;color:#666;flex:1 1 160px;min-width:0;max-width:100%}
     .link-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#666}
     .link-row i{font-size:16px}
     .link-row a{color:#185fa5;text-decoration:none}
