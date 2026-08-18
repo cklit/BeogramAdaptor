@@ -41,14 +41,18 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     .form-group label{font-size:13px;color:#666}
     @media(prefers-color-scheme:dark){.form-group label{color:#aaa}}
     .input-row{display:flex;gap:8px}
-    .hdr-btn{margin-left:auto;background:none;border:none;color:#999;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:16px}
+    .hdr-btn{margin-left:auto;background:none;border:none;color:#999;cursor:pointer;padding:4px 6px;border-radius:6px;font-size:16px;display:inline-flex;align-items:center;line-height:1}
     .hdr-btn:hover{color:#333;background:#f0f0f0}
     @media(prefers-color-scheme:dark){.hdr-btn{color:#888}.hdr-btn:hover{color:#ddd;background:#333}}
     .input-row input{flex:1;font-size:13px;padding:0 10px;height:36px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111}
     @media(prefers-color-scheme:dark){.input-row input{background:#1a1a1a;border-color:#444;color:#eee}}
-    .btn{height:36px;padding:0 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;white-space:nowrap}
+    .btn{height:36px;padding:0 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center;justify-content:center;line-height:1}
     .btn:hover{background:#f5f5f5}
     @media(prefers-color-scheme:dark){.btn{background:#2a2a2a;border-color:#444;color:#eee}.btn:hover{background:#333}}
+    .btn.scanning{animation:scanPulse 1.3s ease-in-out infinite}
+    @keyframes scanPulse{0%,100%{background:#fff;border-color:#ddd;color:#666}50%{background:#e1f5ee;border-color:#1D9E75;color:#0f6e56}}
+    @media(prefers-color-scheme:dark){@keyframes scanPulse{0%,100%{background:#2a2a2a;border-color:#444;color:#aaa}50%{background:#1e3d34;border-color:#1D9E75;color:#7fd9bb}}}
+    @media(prefers-reduced-motion:reduce){.btn.scanning{animation:none;border-color:#1D9E75}}
     .btn-highlight{background:#1D9E75;border-color:#1D9E75;color:#fff}
     .btn-highlight:hover{background:#178a65}
     @media(prefers-color-scheme:dark){.btn-highlight{background:#1D9E75;border-color:#1D9E75;color:#fff}.btn-highlight:hover{background:#178a65}}
@@ -105,15 +109,27 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">State</span>
       <span class="badge disconnected" id="bg-state"><i class="ti ti-circle"></i>Unknown</span>
     </div>
-    <div class="status-row">
+    <div class="status-row" id="bg-track-row">
       <span class="status-label">Track</span>
       <span class="ip-chip" id="bg-track">-</span>
     </div>
     <div class="input-row" style="margin-top:8px;justify-content:center">
       <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back"></i></button>
+      <button class="btn" id="bg-playpause" title="Play"><i class="ti ti-player-play" id="bg-playpause-icon"></i></button>
       <button class="btn" id="bg-play" title="Play"><i class="ti ti-player-play"></i></button>
-      <button class="btn" id="bg-stop" title="Stop"><i class="ti ti-player-stop"></i></button>
+      <button class="btn" id="bg-stop" title="Lift tonearm"><i class="ti ti-chevron-up"></i></button> 
       <button class="btn" id="bg-next" title="Next track"><i class="ti ti-player-skip-forward"></i></button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><i class="ti ti-settings"></i><h2>Deck type</h2></div>
+    <div class="select-row" style="margin-bottom:0">
+      <label>Connected deck</label>
+      <div class="seg" id="deviceTypeSeg">
+        <button data-type="cd" id="dtype-cd">CD</button>
+        <button data-type="record" id="dtype-record">Turntable</button>
+      </div>
     </div>
   </div>
 
@@ -148,6 +164,10 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">Serial number</span>
       <span class="ip-chip" id="product-serial"></span>
     </div>
+    <div class="status-row" id="product-platform-row" style="display:none">
+      <span class="status-label">Platform</span>
+      <span class="ip-chip" id="product-platform"></span>
+    </div>    
     <div class="status-row">
       <span class="status-label">IP address</span>
       <span class="ip-chip" id="product-ip">—</span>
@@ -200,13 +220,6 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="badge disconnected" id="halo-ws-status"><i class="ti ti-circle"></i>Disconnected</span>
     </div>
     <div class="divider"></div>
-    <div class="select-row" style="margin-bottom:.75rem">
-      <label>Deck type</label>
-      <div class="seg" id="deviceTypeSeg">
-        <button data-type="cd" id="dtype-cd">CD</button>
-        <button data-type="record" id="dtype-record">Turntable</button>
-      </div>
-    </div>
     <div class="toggle-row">
       <span>Activate controls when Halo wakes up</span>
       <label class="toggle">
@@ -253,7 +266,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
 </div>
 
 <script>
-const PLATFORM_LABELS={ase:'ASE platform product',mozart:'Mozart platform product'};
+const PLATFORM_LABELS={ase:'ASE',mozart:'Mozart'};
 const SOURCE_OPTIONS={
   ase:[['LINE IN','Line-In (default)'],['TOSLINK','Optical']],
   mozart:[['lineIn','Line-In (default)'],['spdif','Optical']]
@@ -285,7 +298,6 @@ document.getElementById('manualPlatformSeg').addEventListener('click',function(e
 function applyPlatform(p){
   if(p===currentPlatform)return;
   currentPlatform=p;
-  document.getElementById('product-platform-label').textContent=PLATFORM_LABELS[p]||'Product';
   setManualPlatform(p);
   let sel=document.getElementById('sourceSelect');
   sel.innerHTML='';
@@ -296,11 +308,18 @@ function applyPlatform(p){
   });
 }
 
+let bgPlayingNow=false;
 function renderBeogram(state,track,playing){
+  bgPlayingNow=!!playing;
   let b=document.getElementById('bg-state');
   b.className='badge '+(playing?'connected':'disconnected');
   b.innerHTML='<i class="ti ti-circle"></i>'+state;
   document.getElementById('bg-track').textContent=track||'-';
+  // CD: one button toggles. Turntable: separate Play and Lift, because a
+  // lifted tonearm is never reported and a toggle would get out of sync.
+  let pp=document.getElementById('bg-playpause');
+  document.getElementById('bg-playpause-icon').className=playing?'ti ti-player-pause':'ti ti-player-play';
+  pp.title=playing?'Pause':'Play';
 }
 
 let bgWs=null;
@@ -318,6 +337,9 @@ connectBgWs();
   document.getElementById('bg-'+cmd).addEventListener('click',function(){
     fetch('/command/'+cmd,{method:'POST'});
   });
+});
+document.getElementById('bg-playpause').addEventListener('click',function(){
+  fetch('/command/'+(bgPlayingNow?'stop':'play'),{method:'POST'});
 });
 
 function updateStatus(){
@@ -337,6 +359,8 @@ function updateStatus(){
     let sn=d.product_serial||'';
     document.getElementById('product-serial-row').style.display=hasProduct?'flex':'none';
     document.getElementById('product-serial').textContent=sn||'N/A. Manually added';
+    document.getElementById('product-platform-row').style.display=hasProduct?'flex':'none';
+    document.getElementById('product-platform').textContent=PLATFORM_LABELS[d.platform]||d.platform||'';    
     document.getElementById('product-connect-form').style.display=hasProduct?'none':'flex';
     document.getElementById('product-action-row').style.display=hasProduct?'flex':'none';
 
@@ -421,6 +445,7 @@ function rebuildDiscoverOptions(devices){
 document.getElementById('product-scan-btn').addEventListener('click',function(){
   let btn=this,err=document.getElementById('discover-error'),note=document.getElementById('scan-note');
   btn.disabled=true;
+  btn.classList.add('scanning'); 
   btn.innerHTML='<i class="ti ti-loader-2"></i>&nbsp;Scanning\u2026';
   err.style.display='none';note.style.display='block';
   fetch('/discover').then(r=>r.json()).then(d=>{
@@ -430,6 +455,7 @@ document.getElementById('product-scan-btn').addEventListener('click',function(){
   }).catch(()=>{err.style.display='block';})
   .finally(()=>{
     btn.disabled=false;
+    btn.classList.remove('scanning');
     btn.innerHTML='<i class="ti ti-radar-2"></i>&nbsp;Start product scan';
     note.style.display='none';
   });
@@ -482,6 +508,7 @@ function rebuildHaloOptions(devices){
 document.getElementById('halo-scan-btn').addEventListener('click',function(){
   let btn=this,err=document.getElementById('halo-discover-error'),note=document.getElementById('halo-scan-note');
   btn.disabled=true;
+  btn.classList.add('scanning');  
   btn.innerHTML='<i class="ti ti-loader-2"></i>&nbsp;Scanning\u2026';
   err.style.display='none';note.style.display='block';
   fetch('/discover-halo').then(r=>r.json()).then(d=>{
@@ -490,6 +517,7 @@ document.getElementById('halo-scan-btn').addEventListener('click',function(){
   }).catch(()=>{err.style.display='block';})
   .finally(()=>{
     btn.disabled=false;
+    btn.classList.remove('scanning');
     btn.innerHTML='<i class="ti ti-radar-2"></i>&nbsp;Start Halo scan';
     note.style.display='none';
   });
@@ -510,7 +538,14 @@ function applyDeviceType(t){
   currentDeviceType=t;
   document.getElementById('dtype-cd').className=t==='cd'?'active':'';
   document.getElementById('dtype-record').className=t==='record'?'active':'';
+  let rec=(t==='record');
+  document.getElementById('bg-playpause').style.display=rec?'none':'inline-flex';
+  document.getElementById('bg-play').style.display=rec?'inline-flex':'none';
+  document.getElementById('bg-stop').style.display=rec?'inline-flex':'none';
+  // A turntable reports no track numbers, so the row would just say "-".
+  document.getElementById('bg-track-row').style.display=rec?'none':'flex';
 }
+applyDeviceType('cd');
 document.getElementById('deviceTypeSeg').addEventListener('click',function(e){
   let btn=e.target.closest('button');
   if(!btn||btn.dataset.type===currentDeviceType)return;
