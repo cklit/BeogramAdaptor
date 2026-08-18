@@ -295,10 +295,11 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     </div>
     <p class="hint" style="margin-top:0">Will reset <strong>all settings</strong> &mdash; the connection to the product, Beoremote Halo, Home Assistant, and WiFi credentials will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
   </div>
+</div>
 
-  <div class="card">
-    <div class="link-row">
-      <i class="ti ti-brand-github"></i>
+<div class="card">
+  <div class="link-row">
+    <i class="ti ti-brand-github"></i>
       <a href="https://github.com/cklit/BGAdaptor" target="_blank">View on GitHub</a>
     </div>
   </div>
