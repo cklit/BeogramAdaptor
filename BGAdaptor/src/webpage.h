@@ -95,6 +95,16 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     .info-text{display:none;font-size:12px;color:#888;margin-top:6px}
     .action-row{display:flex;gap:8px;margin-top:.75rem;flex-wrap:wrap}
     .hint{font-size:12px;color:#888;margin-top:.5rem}
+    .settings-row{display:flex;align-items:center;gap:10px}
+    .settings-row .summary{margin-left:6px}
+    .settings-label{font-size:15px;font-weight:500}
+    #settings-icon{font-size:18px;color:#888;line-height:1}
+    .settings-row .btn{margin-left:auto}
+    .summary{display:flex;align-items:center;gap:16px;flex:0 1 auto}
+    .sum-item{display:none;align-items:center;font-size:19px;color:#1D9E75;line-height:1}
+    .sum-item.on{display:inline-flex}
+    #settings-cards{display:none;flex-direction:column;gap:1rem}
+    #settings-cards.open{display:flex}
   </style>
 </head>
 <body>
@@ -123,10 +133,24 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     </div>
   </div>
 
+  <div class="card" id="settings-bar">
+    <div class="settings-row">
+      <i class="ti ti-settings" id="settings-icon"></i>
+      <span class="settings-label">Settings</span>
+      <div class="summary" id="settings-summary">
+        <span class="sum-item" id="sum-product" title="Product connected"><i class="ti ti-device-speaker"></i></span>
+        <span class="sum-item" id="sum-halo" title="Beoremote Halo connected"><i class="ti ti-device-remote"></i></span>
+        <span class="sum-item" id="sum-mqtt" title="Home Assistant connected"><i class="ti ti-smart-home"></i></span>
+      </div>
+      <button class="btn" id="settingsToggle">Show</button>
+    </div>
+  </div>
+
+  <div id="settings-cards">
   <div class="card">
-    <div class="card-header"><i class="ti ti-settings"></i><h2>Deck type</h2></div>
+    <div class="card-header"><i class="ti ti-square-rounded-arrow-right"></i><h2>Deck type</h2></div>
     <div class="select-row" style="margin-bottom:0">
-      <label>Connected deck</label>
+      <label>Connected type</label>
       <div class="seg" id="deviceTypeSeg">
         <button data-type="cd" id="dtype-cd">CD</button>
         <button data-type="record" id="dtype-record">Turntable</button>
@@ -189,7 +213,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-remote"></i><h2>Beoremote Halo</h2></div>
+    <div class="card-header"><i class="ti ti-device-remote"></i><h2>Beoremote Halo</h2></div>
     <div class="form-group" id="halo-connect-form" style="margin-top:0;margin-bottom:1.25rem">
       <label for="halo-discover-results">Halo</label>
       <select id="halo-discover-results" style="width:100%">
@@ -257,6 +281,8 @@ static const char* htmlPage PROGMEM = R"rawliteral(
         <button type="submit" class="btn">Upload</button>
       </div>
     </form>
+  </div>
+
   </div>
 
   <div class="card">
@@ -350,6 +376,9 @@ function updateStatus(){
     setBadge(document.getElementById('product-status'),d.product_connected);
     setBadge(document.getElementById('halo-ws-status'),d.halo_ws_connected);
     setBadge(document.getElementById('mqtt-status'),d.mqtt_connected);
+    document.getElementById('sum-product').classList.toggle('on',!!d.product_connected);
+    document.getElementById('sum-halo').classList.toggle('on',!!d.halo_ws_connected);
+    document.getElementById('sum-mqtt').classList.toggle('on',!!d.mqtt_connected);
     document.getElementById('fw-version').textContent=d.firmware;
     document.getElementById('featureToggle').checked=d.feature_enabled;
     if(d.device_type&&d.device_type!==currentDeviceType)applyDeviceType(d.device_type);
@@ -594,6 +623,19 @@ document.getElementById('featureToggle').addEventListener('change',function(){
 document.getElementById('sourceSelect').addEventListener('change',function(){
   fetch('/update-source?source='+this.value);
 });
+
+let settingsOpen=false;
+function applySettingsVisibility(){
+  document.getElementById('settings-cards').classList.toggle('open',settingsOpen);
+  let tb=document.getElementById('settingsToggle');
+  tb.textContent=settingsOpen?'Hide':'Show';
+  tb.classList.toggle('btn-danger',settingsOpen);
+}
+document.getElementById('settingsToggle').addEventListener('click',function(){
+  settingsOpen=!settingsOpen;
+  applySettingsVisibility();
+});
+applySettingsVisibility();
 
 setInterval(updateStatus,5000);
 updateStatus();
