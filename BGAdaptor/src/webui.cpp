@@ -71,7 +71,7 @@ void handleOTAResult() {
     page += failed
         ? "<h2>Update failed</h2><p>The firmware was not written. The adaptor is still running the previous version.</p>"
         : "<h2>Update successful</h2><p>The adaptor is restarting. This page returns automatically in a few seconds.</p>";
-    page += "<a href='/'>Back to front page</a></div></body></html>";
+    page += "<a href='/'>Back to main page</a></div></body></html>";
 
     server.send(200, "text/html", page);
     delay(1000);
