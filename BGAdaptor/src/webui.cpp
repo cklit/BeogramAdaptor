@@ -472,7 +472,14 @@ void handleUpdateDeviceType() {
                        : (value == "tape")   ? DEVICE_TAPE
                                              : DEVICE_CD;
             preferences.putString("deviceType", value);
-            // The Halo layout differs between the two, so push the new
+            // The Play-button icon is a turntable-only option and its toggle
+            // is hidden for other decks, so clear it here — otherwise it
+            // would stay set with no way to switch it off.
+            if (deviceType != DEVICE_RECORD && haloPlayIcon) {
+                haloPlayIcon = false;
+                preferences.putBool("haloPlayIcon", false);
+            }
+            // The Halo layout differs between deck types, so push the new
             // configuration straight away — no restart needed.
             if (haloClient.available()) sendConfigToHalo();
             server.send(200, "text/plain", "OK");
@@ -480,6 +487,18 @@ void handleUpdateDeviceType() {
         }
     }
     server.send(400, "text/plain", "Invalid device type");
+}
+
+void handleUpdateHaloPlayIcon() {
+    if (server.hasArg("enabled")) {
+        haloPlayIcon = (server.arg("enabled") == "true");
+        preferences.putBool("haloPlayIcon", haloPlayIcon);
+        // The button's content type changes, so the Halo needs the new config.
+        if (haloClient.available()) sendConfigToHalo();
+        server.send(200, "text/plain", "OK");
+        return;
+    }
+    server.send(400, "text/plain", "Missing value");
 }
 
 void handleStatus() {
@@ -496,7 +515,8 @@ void handleStatus() {
     jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
     jsonResponse += "\"device_type\":\"" + String(deviceType == DEVICE_RECORD ? "record" : deviceType == DEVICE_TAPE ? "tape" : "cd") + "\",";
-    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
+    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";
+    jsonResponse += "\"halo_play_icon\": " + String(haloPlayIcon ? "true" : "false") + ",";    
     jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
     jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";            
     jsonResponse += "}";
@@ -647,6 +667,7 @@ void registerWebRoutes() {
     server.on("/update-halo", HTTP_GET, handleUpdateHalo);
     server.on("/update-feature", HTTP_GET, handleUpdateFeature);
     server.on("/update-devicetype", HTTP_GET, handleUpdateDeviceType);
+    server.on("/update-haloplayicon", HTTP_GET, handleUpdateHaloPlayIcon);
     server.on("/status", handleStatus);
     server.on("/update-ota", HTTP_POST, handleOTAResult, handleOTAUpdate); 
     server.begin();

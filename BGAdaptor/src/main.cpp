@@ -131,6 +131,7 @@ void setup() {
     haloIP = preferences.getString("haloIP", "");
     haloSerial = preferences.getString("haloSerial", "");
     haloControls = preferences.getBool("feature_enabled", false);
+    haloPlayIcon = preferences.getBool("haloPlayIcon", false);
     String storedDeck = preferences.getString("deviceType", "cd");
     deviceType = (storedDeck == "record") ? DEVICE_RECORD
                : (storedDeck == "tape")   ? DEVICE_TAPE

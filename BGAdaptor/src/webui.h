@@ -19,6 +19,7 @@ void handleMqttUpdate();
 void handleMqttConfig();
 void handleUpdateFeature();
 void handleUpdateDeviceType();
+void handleUpdateHaloPlayIcon();
 void handleStatus();
 void handleResetWifi();
 void handleFactoryReset();

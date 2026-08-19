@@ -26,6 +26,21 @@ void sendButtonUpdate(const char* buttonID, const char* state, const char* title
     haloClient.send(output);
 }
 
+// Same as sendButtonUpdate, but sets the button content to one of Halo's
+// built-in icons. content is oneOf {text} | {icon}, so the two are
+// mutually exclusive — never send both.
+void sendButtonIconUpdate(const char* buttonID, const char* icon, const char* title, const char* subtitle) {
+    JsonDocument doc;
+    doc["update"]["type"] = "button";
+    doc["update"]["id"] = buttonID;
+    if (title != nullptr) doc["update"]["title"] = title;
+    if (subtitle != nullptr) doc["update"]["subtitle"] = subtitle;
+    doc["update"]["content"]["icon"] = icon;
+    String output;
+    serializeJson(doc, output);
+    haloClient.send(output);
+}
+
 void sendPageUpdate(const char* pageID, const char* buttonID) {
     JsonDocument doc;
     doc["update"]["type"] = "displaypage";
@@ -34,6 +49,19 @@ void sendPageUpdate(const char* pageID, const char* buttonID) {
     String output;
     serializeJson(doc, output);
     haloClient.send(output);
+}
+
+// Build one button entry for the Halo configuration, with an icon as
+// content instead of a text label.
+static String haloIconButton(const char* id, const char* icon, const char* title, const char* subtitle) {
+    return String("{") +
+        "\"id\": \"" + id + "\"," +
+        "\"title\": \"" + title + "\"," +
+        "\"subtitle\": \"" + subtitle + "\"," +
+        "\"value\": 100," +
+        "\"state\": \"inactive\"," +
+        "\"content\": { \"icon\": \"" + icon + "\" }" +
+    "}";
 }
 
 // Build one button entry for the Halo configuration.
@@ -57,8 +85,13 @@ void sendConfigToHalo() {
     const char* prevLabel = (deviceType == DEVICE_TAPE) ? "Rew" : "Prev";
     const char* nextLabel = (deviceType == DEVICE_TAPE) ? "Fwd" : "Next";
 
+    // Turntable only: the Play button can show Halo's turntable icon, with
+    // the action in the title and the playback state in the subtitle.
+    bool playIcon = (deviceType == DEVICE_RECORD && haloPlayIcon);
+
     String buttons = haloButton(HALO_BTN_PREV, prevLabel) + "," +
-                     haloButton(HALO_BTN_PLAY, "Play") + ",";
+                     (playIcon ? haloIconButton(HALO_BTN_PLAY, "turntable", "PLAY", "Stopped")
+                               : haloButton(HALO_BTN_PLAY, "Play")) + ",";
     // CD trusts its own reported state, so one toggling button is enough.
     // A turntable never reports a lifted tonearm and a tape deck's stop is
     // a distinct action — both get a dedicated second button.
@@ -99,6 +132,13 @@ void sendConfigToHalo() {
 //          label would end up lying about what the button does.
 void updateHaloPlayback(bool playing, const char* subtitle) {
     const char* title = playing ? "Playing" : "Stopped";
+    if (deviceType == DEVICE_RECORD && haloPlayIcon) {
+        // Icon mode: the button shows a turntable, so the label moves to
+        // the title and the state is reported in the subtitle instead.
+        sendButtonIconUpdate(HALO_BTN_PLAY, "turntable", "PLAY", title);
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Lift", subtitle);
+        return;
+    }
     if (deviceType != DEVICE_CD) {
         // Only the Play button carries the status title; the second button
         // keeps an empty one so the state is stated once, not twice.
@@ -111,7 +151,11 @@ void updateHaloPlayback(bool playing, const char* subtitle) {
 }
 
 void updateHaloSubtitle(const char* subtitle) {
-    sendButtonUpdate(HALO_BTN_PLAY, nullptr, nullptr, nullptr, subtitle);
+    // In icon mode the Play subtitle carries the playback state, so leave
+    // it alone here (a turntable reports no track info anyway).
+    if (!(deviceType == DEVICE_RECORD && haloPlayIcon)) {
+        sendButtonUpdate(HALO_BTN_PLAY, nullptr, nullptr, nullptr, subtitle);
+    }
     if (deviceType != DEVICE_CD) {
         sendButtonUpdate(HALO_BTN_STOP, nullptr, nullptr, nullptr, subtitle);
     }
