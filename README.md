@@ -93,7 +93,7 @@ In the Settings section, tap Show.
 <img src="/screenshots/bgadaptor_bgcd.png" width="50%"><img src="/screenshots/bgadaptor_settings.png" width="50%">
 In the Type section, you define what kind of source you have connected. The UI will change accordingly.
 
-In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
+In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product that the BGAdaptor should connect to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
 Once connected the BGAdaptor will monitor the event stream from the product.
 
