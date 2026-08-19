@@ -39,7 +39,6 @@ static const unsigned long reconnectInterval = 10000;
 // seconds, so repeated failures must slow down or the adaptor spends most of
 // its time stalled (no web UI, no serial handling, no Halo updates).
 static const unsigned long reconnectMaxInterval = 60000;
-static const uint32_t connectTimeoutSec = 2; 
 static const unsigned long pingTimeout = 10000;
 static const unsigned long haloActionDelay = 800;
 static const unsigned long stateDebounceDelay = 100;

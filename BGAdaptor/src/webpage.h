@@ -1,8 +1,11 @@
 #pragma once
 #include <Arduino.h>
+#include "webpage_icons.h"
 
 // The embedded configuration page (HTML + CSS + JS), served at "/".
 // UI-only — no firmware logic belongs in this file.
+// Icons come from webpage_icons.h (MAIN_SPRITE + PAGE_ICON_CSS), pasted
+// in at compile time by adjacent-literal concatenation.
 
 static const char* htmlPage PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -13,11 +16,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   <title>BGAdaptor</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    /* Icons are inlined as an SVG sprite: no webfont, no network request,
-       so the page renders fully even with no internet access. */
-    .ic{width:1em;height:1em;display:inline-block;vertical-align:-.125em;flex:none;
-      fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-    .ic .f,symbol.f *{fill:currentColor;stroke:none}
+)rawliteral" PAGE_ICON_CSS R"rawliteral(
     body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
     @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
     .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
@@ -112,7 +111,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </style>
 </head>
 <body>
-<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-brand-github" viewBox="0 0 24 24"><path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" /></symbol><symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="M6 15l6 -6l6 6" /></symbol><symbol id="i-chevrons-left" viewBox="0 0 24 24"><path d="M11 7l-5 5l5 5" /> <path d="M17 7l-5 5l5 5" /></symbol><symbol id="i-chevrons-right" viewBox="0 0 24 24"><path d="M7 7l5 5l-5 5" /> <path d="M13 7l5 5l-5 5" /></symbol><symbol id="i-circle" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></symbol><symbol id="i-circle-filled" viewBox="0 0 24 24" class="f"><path d="M7 3.34a10 10 0 1 1 -4.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 4.995 -8.336z" /></symbol><symbol id="i-device-audio-tape" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" /> <path d="M3 17l4 -3h10l4 3" /> <path d="M7 9.5a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /> <path d="M16 9.5a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /></symbol><symbol id="i-device-remote" viewBox="0 0 24 24"><path d="M10 10a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /> <path d="M7 5a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -14" /> <path d="M12 3v2" /> <path d="M10 15v.01" /> <path d="M10 18v.01" /> <path d="M14 18v.01" /> <path d="M14 15v.01" /></symbol><symbol id="i-device-speaker" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -14" /> <path d="M9 14a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /> <path d="M12 7l0 .01" /></symbol><symbol id="i-disc" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /> <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M7 12a5 5 0 0 1 5 -5" /> <path d="M12 17a5 5 0 0 0 5 -5" /></symbol><symbol id="i-loader-2" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></symbol><symbol id="i-player-pause" viewBox="0 0 24 24"><path d="M6 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -12" /> <path d="M14 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -12" /></symbol><symbol id="i-player-play" viewBox="0 0 24 24"><path d="M7 4v16l13 -8l-13 -8" /></symbol><symbol id="i-player-skip-back" viewBox="0 0 24 24"><path d="M20 5v14l-12 -7l12 -7" /> <path d="M4 5l0 14" /></symbol><symbol id="i-player-skip-forward" viewBox="0 0 24 24"><path d="M4 5v14l12 -7l-12 -7" /> <path d="M20 5l0 14" /></symbol><symbol id="i-player-stop" viewBox="0 0 24 24"><path d="M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -10" /></symbol><symbol id="i-power" viewBox="0 0 24 24"><path d="M7 6a7.75 7.75 0 1 0 10 0" /> <path d="M12 4l0 8" /></symbol><symbol id="i-radar-2" viewBox="0 0 24 24"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M15.51 15.56a5 5 0 1 0 -3.51 1.44" /> <path d="M18.832 17.86a9 9 0 1 0 -6.832 3.14" /> <path d="M12 12v9" /></symbol><symbol id="i-refresh-alert" viewBox="0 0 24 24"><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /> <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /> <path d="M12 9l0 3" /> <path d="M12 15l.01 0" /></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065" /> <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></symbol><symbol id="i-smart-home" viewBox="0 0 24 24"><path d="M19 8.71l-5.333 -4.148a2.666 2.666 0 0 0 -3.274 0l-5.334 4.148a2.665 2.665 0 0 0 -1.029 2.105v7.2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-7.2c0 -.823 -.38 -1.6 -1.03 -2.105" /> <path d="M16 15c-2.21 1.333 -5.792 1.333 -8 0" /></symbol><symbol id="i-square-rounded-arrow-right" viewBox="0 0 24 24"><path d="M12 16l4 -4l-4 -4" /> <path d="M8 12h8" /> <path d="M12 3c7.2 0 9 1.8 9 9c0 7.2 -1.8 9 -9 9c-7.2 0 -9 -1.8 -9 -9c0 -7.2 1.8 -9 9 -9" /></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /> <path d="M7 9l5 -5l5 5" /> <path d="M12 4l0 12" /></symbol><symbol id="i-vinyl" viewBox="0 0 24 24"><path d="M16 3.937a9 9 0 1 0 5 8.063" /> <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M19 4a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M20 4l-3.5 10l-2.5 2" /></symbol></svg>
+)rawliteral" MAIN_SPRITE R"rawliteral(
 <div class="page">
   <div class="page-title">
     <svg class="ic"><use href="#i-disc"/></svg>

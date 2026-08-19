@@ -1,5 +1,6 @@
 #include "webui.h"
 #include "webpage.h"
+#include "webpage_icons.h"
 #include "beogram.h"
 #include "transport.h"
 #include "halo.h"
@@ -216,19 +217,18 @@ void handleMqttReset() {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="refresh" content="5;url=/mqtt">
         <title>Reset</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-        <style>
+        <style>)rawliteral" PAGE_ICON_CSS R"rawliteral(
             *{box-sizing:border-box;margin:0;padding:0}
             body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
             @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
             .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
             .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-            .page-title i{font-size:22px;color:#666}
+            .page-title .ic{font-size:22px;color:#666}
             .page-title h1{font-size:18px;font-weight:500}
             .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
             @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
             .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
-            .card-header i{font-size:18px;color:#a32d2d}
+            .card-header .ic{font-size:18px;color:#a32d2d}
             .card-header h2{font-size:15px;font-weight:500}
             .sub{font-size:13px;color:#888;margin-bottom:1rem}
             .btn{height:36px;padding:0 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
@@ -236,15 +236,15 @@ void handleMqttReset() {
             @media(prefers-color-scheme:dark){.btn{background:#2a2a2a;border-color:#444;color:#eee}.btn:hover{background:#333}}
         </style>
         </head>
-        <body>
+        <body>)rawliteral" PAGE_SPRITE R"rawliteral(
         <div class="page">
         <div class="page-title">
-            <i class="ti ti-smart-home"></i>
+            <svg class="ic"><use href="#i-smart-home"/></svg>
             <h1>Home Assistant</h1>
         </div>
         <div class="card">
             <div class="card-header">
-            <i class="ti ti-trash"></i>
+            <svg class="ic"><use href="#i-trash"/></svg>
             <h2>MQTT settings cleared</h2>
             </div>
             <p class="sub">Restarting to apply changes&hellip;</p>
@@ -277,19 +277,18 @@ void handleMqttUpdate() {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <meta http-equiv="refresh" content="5;url=/">
             <title>Saved</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-            <style>
+            <style>)rawliteral" PAGE_ICON_CSS R"rawliteral(
                 *{box-sizing:border-box;margin:0;padding:0}
                 body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
                 @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
                 .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
                 .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-                .page-title i{font-size:22px;color:#666}
+                .page-title .ic{font-size:22px;color:#666}
                 .page-title h1{font-size:18px;font-weight:500}
                 .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
                 @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
                 .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
-                .card-header i{font-size:18px;color:#1D9E75}
+                .card-header .ic{font-size:18px;color:#1D9E75}
                 .card-header h2{font-size:15px;font-weight:500}
                 .sub{font-size:13px;color:#888;margin-bottom:1rem}
                 .btn{height:36px;padding:0 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
@@ -297,15 +296,15 @@ void handleMqttUpdate() {
                 @media(prefers-color-scheme:dark){.btn{background:#2a2a2a;border-color:#444;color:#eee}.btn:hover{background:#333}}
             </style>
             </head>
-            <body>
+            <body>)rawliteral" PAGE_SPRITE R"rawliteral(
             <div class="page">
             <div class="page-title">
-                <i class="ti ti-smart-home"></i>
+                <svg class="ic"><use href="#i-smart-home"/></svg>
                 <h1>Home Assistant</h1>
             </div>
             <div class="card">
                 <div class="card-header">
-                <i class="ti ti-circle-check"></i>
+                <svg class="ic"><use href="#i-circle-check"/></svg>
                 <h2>Settings saved</h2>
                 </div>
                 <p class="sub">Restarting to apply changes&hellip;</p>
@@ -326,19 +325,18 @@ void handleMqttUpdate() {
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>Error</title>
-            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-            <style>
+            <style>)rawliteral" PAGE_ICON_CSS R"rawliteral(
                 *{box-sizing:border-box;margin:0;padding:0}
                 body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
                 @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
                 .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
                 .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-                .page-title i{font-size:22px;color:#666}
+                .page-title .ic{font-size:22px;color:#666}
                 .page-title h1{font-size:18px;font-weight:500}
                 .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
                 @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
                 .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
-                .card-header i{font-size:18px;color:#a32d2d}
+                .card-header .ic{font-size:18px;color:#a32d2d}
                 .card-header h2{font-size:15px;font-weight:500}
                 .sub{font-size:13px;color:#888;margin-bottom:1rem}
                 .btn{height:36px;padding:0 14px;font-size:13px;border:1px solid #ddd;border-radius:8px;background:#fff;color:#111;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
@@ -346,15 +344,15 @@ void handleMqttUpdate() {
                 @media(prefers-color-scheme:dark){.btn{background:#2a2a2a;border-color:#444;color:#eee}.btn:hover{background:#333}}
             </style>
             </head>
-            <body>
+            <body>)rawliteral" PAGE_SPRITE R"rawliteral(
             <div class="page">
             <div class="page-title">
-                <i class="ti ti-smart-home"></i>
+                <svg class="ic"><use href="#i-smart-home"/></svg>
                 <h1>Home Assistant</h1>
             </div>
             <div class="card">
                 <div class="card-header">
-                <i class="ti ti-circle-x"></i>
+                <svg class="ic"><use href="#i-circle-x"/></svg>
                 <h2>Missing parameters</h2>
                 </div>
                 <p class="sub">Please fill in all fields and try again.</p>
@@ -375,19 +373,18 @@ void handleMqttConfig() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>MQTT Configuration</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-        <style>
+        <style>)rawliteral" PAGE_ICON_CSS R"rawliteral(
             *{box-sizing:border-box;margin:0;padding:0}
             body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
             @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
             .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
             .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-            .page-title i{font-size:22px;color:#666}
+            .page-title .ic{font-size:22px;color:#666}
             .page-title h1{font-size:18px;font-weight:500}
             .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
             @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
             .card-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
-            .card-header i{font-size:18px;color:#888}
+            .card-header .ic{font-size:18px;color:#888}
             .card-header h2{font-size:15px;font-weight:500}
             .form-group{display:flex;flex-direction:column;gap:6px;margin-bottom:.75rem}
             .form-group label{font-size:13px;color:#666}
@@ -409,15 +406,15 @@ void handleMqttConfig() {
             @media(prefers-color-scheme:dark){.status-label{color:#aaa}}
         </style>
         </head>
-        <body>
+        <body>)rawliteral" PAGE_SPRITE R"rawliteral(
         <div class="page">
         <div class="page-title">
-            <i class="ti ti-smart-home"></i>
+            <svg class="ic"><use href="#i-smart-home"/></svg>
             <h1>Home Assistant</h1>
         </div>
 
         <div class="card">
-            <div class="card-header"><i class="ti ti-server"></i><h2>MQTT broker</h2></div>
+            <div class="card-header"><svg class="ic"><use href="#i-server"/></svg><h2>MQTT broker</h2></div>
             <form method="POST" action="/mqtt">
             <div class="form-group">
                 <label for="ip">Broker IP address</label>
@@ -532,32 +529,31 @@ void handleResetWifi() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>WiFi Reset</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-        <style>
+        <style>)rawliteral" PAGE_ICON_CSS R"rawliteral(
             *{box-sizing:border-box;margin:0;padding:0}
             body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
             @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
             .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
             .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-            .page-title i{font-size:22px;color:#666}
+            .page-title .ic{font-size:22px;color:#666}
             .page-title h1{font-size:18px;font-weight:500}
             .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
             @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
             .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
-            .card-header i{font-size:18px;color:#a32d2d}
+            .card-header .ic{font-size:18px;color:#a32d2d}
             .card-header h2{font-size:15px;font-weight:500}
             .sub{font-size:13px;color:#888}
         </style>
         </head>
-        <body>
+        <body>)rawliteral" PAGE_SPRITE R"rawliteral(
         <div class="page">
         <div class="page-title">
-            <i class="ti ti-wifi"></i>
+            <svg class="ic"><use href="#i-wifi"/></svg>
             <h1>WiFi</h1>
         </div>
         <div class="card">
             <div class="card-header">
-            <i class="ti ti-wifi-off"></i>
+            <svg class="ic"><use href="#i-wifi-off"/></svg>
             <h2>WiFi settings cleared</h2>
             </div>
             <p class="sub">Restarting in AP mode&hellip; Connect to <strong>BGAdaptor</strong> to reconfigure.</p>
@@ -581,32 +577,31 @@ void handleFactoryReset() {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Reset</title>
-        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
-        <style>
+        <style>)rawliteral" PAGE_ICON_CSS R"rawliteral(
             *{box-sizing:border-box;margin:0;padding:0}
             body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
             @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
             .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
             .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-            .page-title i{font-size:22px;color:#666}
+            .page-title .ic{font-size:22px;color:#666}
             .page-title h1{font-size:18px;font-weight:500}
             .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
             @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
             .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
-            .card-header i{font-size:18px;color:#a32d2d}
+            .card-header .ic{font-size:18px;color:#a32d2d}
             .card-header h2{font-size:15px;font-weight:500}
             .sub{font-size:13px;color:#888}
         </style>
         </head>
-        <body>
+        <body>)rawliteral" PAGE_SPRITE R"rawliteral(
         <div class="page">
         <div class="page-title">
-            <i class="ti ti-refresh-alert"></i>
+            <svg class="ic"><use href="#i-refresh-alert"/></svg>
             <h1>Reset</h1>
         </div>
         <div class="card">
             <div class="card-header">
-            <i class="ti ti-settings-off"></i>
+            <svg class="ic"><use href="#i-settings-off"/></svg>
             <h2>All settings cleared</h2>
             </div>
             <p class="sub">Restarting in AP mode&hellip; Connect to the <strong>BGAdaptor</strong> hotspot to set it up again.</p>
