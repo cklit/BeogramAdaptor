@@ -140,7 +140,6 @@ void setup() {
     mqttUser = preferences.getString("mqttUser", "");
     mqttPassword = preferences.getString("mqttPassword", "");
     triggerSource = preferences.getString("triggerSource", platform == PLATFORM_MOZART ? "lineIn" : "LINE IN");    
-    preferences.end();  
     // ── Home Assistant / MQTT device ────────────────────────────────
     WiFi.macAddress(mac);
     String macSuffix = macToUnderscoreString(mac, sizeof(mac));
