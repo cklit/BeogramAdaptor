@@ -5,7 +5,7 @@ modern Bang & Olufsen product, turning it into a fully integrated source:
 - Switch source and it stops
 - Send the product to standby and the Data Link source turns off.
 
-Your Beogram behaves like a native source — controllable from the product itself, the B&O
+Your Data Link source behaves like a native source — controllable from the product itself, the B&O
 app, a Beoremote One or a Beoremote Halo (next and previous is unfortunately not possible from the B&O app).
 
 Under the hood, an ESP32 microcontroller monitors your B&O product over the network and translates its state into Data Link
@@ -91,7 +91,7 @@ In the Settings section, tap Show.
 
 In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
-Additionally you can select whether the Beogram player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input, if chosen. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
+Additionally you can select whether the Data Link source player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input, if chosen. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
 <img src="/screenshots/bgadaptor_settings.png" width="50%">
 
 Once connected the BGAdaptor will monitor the event stream from the product.
@@ -110,9 +110,9 @@ You can start the Data Link source from the Connected Audio product, the app, a 
 A short demo of the different possibilities can be found here: https://youtu.be/YJ0Ucw3CIwc 
 
 
-Changing source away from Line-in will send a STOP command to the Beogram (pause, basically). 
+Changing source away from Line-in will send a STOP command to the Data Link source (pause, basically). 
 
-Activating Line-in again will send PLAY and resume from the point where you left off (note: the Beogram will automatically turn off after a few minutes in STOP-mode).
+Activating Line-in again will send PLAY and resume from the point where you left off (note: the Data Link source will automatically turn off after a few minutes in STOP-mode).
 
 
 Sending a Standby or All-standby to the product from any interface will turn off the record player.
@@ -128,7 +128,7 @@ With a connected Beoremote One BT you can do basic control of the connected Data
 It is **not** possible to change track using the Bang & Olufsen app. Neither is it possible to change track from another room that has joined the experience.
 
 ### Control using a Beoremote Halo (OPTIONAL)
-You can connect a Beoremote Halo to the BGAdaptor from the webpage (_beogram.local_). This will create a custom page on the Halo for Next, Previous and Play/Pause control of the Beogram.
+You can connect a Beoremote Halo to the BGAdaptor from the webpage (_beogram.local_). This will create a custom page on the Halo for Next, Previous and Play/Pause control of the Data Link source.
 
 If a Beogram CD player is connected, it will also show the currently playing track.
 
