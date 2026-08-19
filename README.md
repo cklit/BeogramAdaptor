@@ -1,15 +1,15 @@
 # BGAdaptor
-The BGAdaptor connects a vintage Beogram record player or CD player to a
+The BGAdaptor connects a vintage Data Link source (**Beogram/Beogram CD/Beocord**) to a
 modern Bang & Olufsen product, turning it into a fully integrated source:
-- Select Line-in and the Beogram starts playing
+- Select Line-in and the Data Link source starts playing
 - Switch source and it stops
-- Send the product to standby and the Beogram turns off.
+- Send the product to standby and the Data Link source turns off.
 
-Your Beogram behaves exactly like a native source — controllable from the product itself, the B&O
-app, a Beoremote One or a Beoremote Halo. 
+Your Beogram behaves like a native source — controllable from the product itself, the B&O
+app, a Beoremote One or a Beoremote Halo (next and previous is unfortunately not possible from the B&O app).
 
-Under the hood, an ESP32 monitors your B&O product over the network and translates its state into Data Link
-commands for the Beogram. See more info below.
+Under the hood, an ESP32 microcontroller monitors your B&O product over the network and translates its state into Data Link
+commands. See more info below.
 
 <img src="/images/beogram_adaptor.jpeg" width="250px">
 
@@ -21,7 +21,7 @@ See this article for <a href="https://support.bang-olufsen.com/hc/en-us/articles
 - Products with Google Assistant are **not** supported.
 
 
-### Compatible with any Bang & Olufsen Beogram with built-in RIAA, plus Beogram CD players, as long as they include Data Link (7-pin DIN).
+### Compatible with Data Link sources (7-pin DIN):
 
 **Supported record players that feature Data Link and a built-in RIAA pre-amp:**
 - Beogram 3500
@@ -40,19 +40,27 @@ _If your Data Link-capable Bang & Olufsen record player does not include a built
 - Beogram CD 6500
 - Beogram CD 7000
 
+- **Supported tape decks that feature Data Link:**
+- Beocord 3500
+- Beocord 4500
+- Beocord 5000
+- Beocord 5500
+- Beocord 6500
+- Beocord 7000
+- and others....
+
 
 # How does it work?
 Physically, the BGAdaptor is a female 7-pin DIN to male 3.5mm jack
-adaptor with a small piece of electronics built in. The Beogram plugs into
-the DIN end, and a jack cable is connected between the adaptor and the Line-in input of your Bang & Olufsen product.
+adaptor with a small piece of electronics built in. The Data Link source plugs into
+the DIN end, and a jack cable is connected between the adaptor and the Line-in input of your network connected Bang & Olufsen product.
 
-Inside the BGAdaptor, an ESP32 board is connected to the Beogram's Data Link
-pins. The ESP32 connects to your WiFi network and listens to the event stream
+Inside the BGAdaptor, an ESP32 board is connected to the Data Link source's data pins. The ESP32 connects to your WiFi network and listens to the event stream
 from your Bang & Olufsen product — similar to how the B&O app receives feedback from it. This is how the adaptor knows which source is active, and
-when to send play, stop and standby commands to the Beogram.
+when to send play, stop and standby commands to the Data Link source.
 
 Communication over Data Link is bidirectional: the adaptor sends
-commands, but also receives status back from the Beogram, such as playing
+commands, but also receives status back from the source, such as playing
 state and, for CD players, the current track number.
 _Please note that record players do not report if the needle is lifted. Only Playing and Stopped._
 
@@ -73,15 +81,20 @@ Once it is powered on it will start a Soft AP, which allows you to add the crede
 SSID: **BGAdaptor** <br>
 Password: **password**
 
-As soon as it is connected, enter _beogram.local_ in your browser.
+Once your mobile device is connected, a captive portal will open automatically, where you can enter the credentials for your home WiFi network.
+
+When connected, enter _beogram.local_ in your browser. 
+
+
+In the Settings section, tap Show.
+<img src="/screenshots/bgadaptor_bgcd.png" width="50%">
 
 In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
 Additionally you can select whether the Beogram player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input, if chosen. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
+<img src="/screenshots/bgadaptor_settings.png" width="50%">
 
 Once connected the BGAdaptor will monitor the event stream from the product.
-
-<img src="/screenshots/bgadaptor_fts.png" width="40%"><img src="/screenshots/bgadaptor_connected.png" width="40%">
 
 In the section below the product selector, you can choose to connect to a Beoremote Halo to get player controls. <br><br>
 Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup page for easy connection to Home Assistant. This will expose player controls, playing state, and track number (only relevant for CD players) to Home Assistant.<br>
@@ -93,7 +106,7 @@ Lastly, you can also enter your MQTT credentials on the dedicated MQTT setup pag
 
 # Usage and limitations
 Now you are ready to use the system.
-You can start the Beogram player from the Connected Audio product, the app, a Beoremote Halo and/or a Beoremote One BT by selecting the **Line-in** source.
+You can start the Data Link source from the Connected Audio product, the app, a Beoremote Halo and/or a Beoremote One BT by selecting the **Line-in** source.
 A short demo of the different possibilities can be found here: https://youtu.be/YJ0Ucw3CIwc 
 
 
@@ -105,11 +118,11 @@ Activating Line-in again will send PLAY and resume from the point where you left
 Sending a Standby or All-standby to the product from any interface will turn off the record player.
 
 ### Control using a Beoremote One BT:
-With a connected Beoremote One BT you can do basic control of the connected Beogram. 
+With a connected Beoremote One BT you can do basic control of the connected Data Link source. 
 
-1. Activate Line-in to start the Beogram.
+1. Activate Line-in to start the Data Link source.
 2. Press List on Beoremote One BT and ensure that **Control** is highlighted in the remote list
-3. Press ▶, ⏸, ⏮ or ⏭ to control the Beogram player
+3. Press ▶, ⏸, ⏮ or ⏭ to control the Data Link source
     - If a Beogram CD player is connected, it is also possible to use the digit keys to change to a specific track   
 
 It is **not** possible to change track using the Bang & Olufsen app. Neither is it possible to change track from another room that has joined the experience.
@@ -127,7 +140,7 @@ _If you already is utilising the custom pages, e.g. through a Beoliving Intellig
 Play, Pause, Next and previous works directly on a Mozart product (the < and > buttons are turned off when using Line-in, but they will still work). 
 
 # REST calls
-For testing or integration with a control system, you can send commands directly to the Beogram player. I highly recommend using the IP address instead of beogram.local for these requests, as DNS lookup slows things down significantly.
+For testing or integration with a control system, you can send commands directly to the Data Link source. I highly recommend using the IP address instead of beogram.local for these requests, as DNS lookup slows things down significantly.
 
 Example: ```curl --location --request POST 'http://192.168.100.37/command/next'```
 
