@@ -87,6 +87,7 @@ When connected, enter _beogram.local_ in your browser.
 
 
 In the Settings section, tap Show.
+
 <img src="/screenshots/bgadaptor_bgcd.png" width="50%">
 
 In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
