@@ -9,6 +9,7 @@ void registerWebRoutes();
 
 void handleRoot();
 void handleOTAUpdate();
+void handleOTAResult();
 void handleUpdate();
 void handleUpdateHalo();
 void handleUpdateTriggerSource();
@@ -18,5 +19,7 @@ void handleMqttUpdate();
 void handleMqttConfig();
 void handleUpdateFeature();
 void handleUpdateDeviceType();
+void handleUpdateHaloPlayIcon();
 void handleStatus();
 void handleResetWifi();
+void handleFactoryReset();

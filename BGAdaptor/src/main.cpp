@@ -131,12 +131,16 @@ void setup() {
     haloIP = preferences.getString("haloIP", "");
     haloSerial = preferences.getString("haloSerial", "");
     haloControls = preferences.getBool("feature_enabled", false);
-    deviceType = (preferences.getString("deviceType", "cd") == "record") ? DEVICE_RECORD : DEVICE_CD;
+    haloPlayIcon = preferences.getBool("haloPlayIcon", false);
+    String storedDeck = preferences.getString("deviceType", "cd");
+    deviceType = (storedDeck == "record") ? DEVICE_RECORD
+               : (storedDeck == "tape")   ? DEVICE_TAPE
+                                          : DEVICE_CD;
     mqttIP = preferences.getString("mqttIP", "");
     mqttUser = preferences.getString("mqttUser", "");
     mqttPassword = preferences.getString("mqttPassword", "");
     triggerSource = preferences.getString("triggerSource", platform == PLATFORM_MOZART ? "lineIn" : "LINE IN");    
-
+    preferences.end();  
     // ── Home Assistant / MQTT device ────────────────────────────────
     WiFi.macAddress(mac);
     String macSuffix = macToUnderscoreString(mac, sizeof(mac));

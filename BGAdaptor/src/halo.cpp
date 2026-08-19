@@ -26,6 +26,21 @@ void sendButtonUpdate(const char* buttonID, const char* state, const char* title
     haloClient.send(output);
 }
 
+// Same as sendButtonUpdate, but sets the button content to one of Halo's
+// built-in icons. content is oneOf {text} | {icon}, so the two are
+// mutually exclusive — never send both.
+void sendButtonIconUpdate(const char* buttonID, const char* icon, const char* title, const char* subtitle) {
+    JsonDocument doc;
+    doc["update"]["type"] = "button";
+    doc["update"]["id"] = buttonID;
+    if (title != nullptr) doc["update"]["title"] = title;
+    if (subtitle != nullptr) doc["update"]["subtitle"] = subtitle;
+    doc["update"]["content"]["icon"] = icon;
+    String output;
+    serializeJson(doc, output);
+    haloClient.send(output);
+}
+
 void sendPageUpdate(const char* pageID, const char* buttonID) {
     JsonDocument doc;
     doc["update"]["type"] = "displaypage";
@@ -34,6 +49,19 @@ void sendPageUpdate(const char* pageID, const char* buttonID) {
     String output;
     serializeJson(doc, output);
     haloClient.send(output);
+}
+
+// Build one button entry for the Halo configuration, with an icon as
+// content instead of a text label.
+static String haloIconButton(const char* id, const char* icon, const char* title, const char* subtitle) {
+    return String("{") +
+        "\"id\": \"" + id + "\"," +
+        "\"title\": \"" + title + "\"," +
+        "\"subtitle\": \"" + subtitle + "\"," +
+        "\"value\": 100," +
+        "\"state\": \"inactive\"," +
+        "\"content\": { \"icon\": \"" + icon + "\" }" +
+    "}";
 }
 
 // Build one button entry for the Halo configuration.
@@ -51,10 +79,25 @@ static String haloButton(const char* id, const char* label) {
 void sendConfigToHalo() {
     // Record players get a dedicated Stop button; CD players use a single
     // button that toggles, since their reported state is trustworthy.
-    String buttons = haloButton(HALO_BTN_PREV, "Prev") + "," +
-                     haloButton(HALO_BTN_PLAY, "Play") + ",";
+    const char* pageTitle = (deviceType == DEVICE_TAPE)   ? "Beocord"
+                          : (deviceType == DEVICE_RECORD) ? "Beogram"
+                                                          : "Beogram CD";    
+    const char* prevLabel = (deviceType == DEVICE_TAPE) ? "Rew" : "Prev";
+    const char* nextLabel = (deviceType == DEVICE_TAPE) ? "Fwd" : "Next";
+
+    // Turntable only: the Play button can show Halo's turntable icon, with
+    // the action in the title and the playback state in the subtitle.
+    bool playIcon = (deviceType == DEVICE_RECORD && haloPlayIcon);
+
+    String buttons = haloButton(HALO_BTN_PREV, prevLabel) + "," +
+                     (playIcon ? haloIconButton(HALO_BTN_PLAY, "turntable", "PLAY", "Stopped")
+                               : haloButton(HALO_BTN_PLAY, "Play")) + ",";
+    // CD trusts its own reported state, so one toggling button is enough.
+    // A turntable never reports a lifted tonearm and a tape deck's stop is
+    // a distinct action — both get a dedicated second button.
     if (deviceType == DEVICE_RECORD) buttons += haloButton(HALO_BTN_STOP, "Lift") + ",";
-    buttons += haloButton(HALO_BTN_NEXT, "Next");
+    if (deviceType == DEVICE_TAPE)   buttons += haloButton(HALO_BTN_STOP, "Stop") + ",";
+    buttons += haloButton(HALO_BTN_NEXT, nextLabel);
 
     String jsonMessage = String("{") +
         "\"configuration\": {" +
@@ -62,7 +105,7 @@ void sendConfigToHalo() {
             "\"id\": \"ae32d6dd-3300-4725-a6a0-2df6b5f8326f\"," +
             "\"pages\": [" +
                 "{" +
-                    "\"title\": \"Beogram\"," +
+                    "\"title\": \"" + String(pageTitle) + "\"," +
                     "\"id\": \"" + HALO_PAGE_ID + "\"," +
                     "\"buttons\": [" + buttons + "]" +
                 "}" +
@@ -89,19 +132,31 @@ void sendConfigToHalo() {
 //          label would end up lying about what the button does.
 void updateHaloPlayback(bool playing, const char* subtitle) {
     const char* title = playing ? "Playing" : "Stopped";
-    if (deviceType == DEVICE_RECORD) {
-        // Only the Play button carries the status title; the Stop button
+    if (deviceType == DEVICE_RECORD && haloPlayIcon) {
+        // Icon mode: the button shows a turntable, so the label moves to
+        // the title and the state is reported in the subtitle instead.
+        sendButtonIconUpdate(HALO_BTN_PLAY, "turntable", "PLAY", title);
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Lift", subtitle);
+        return;
+    }
+    if (deviceType != DEVICE_CD) {
+        // Only the Play button carries the status title; the second button
         // keeps an empty one so the state is stated once, not twice.
         sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, "Play", subtitle);
-        sendButtonUpdate(HALO_BTN_STOP, nullptr, "", "Lift", subtitle);
+        sendButtonUpdate(HALO_BTN_STOP, nullptr, "",
+                         (deviceType == DEVICE_TAPE) ? "Stop" : "Lift", subtitle);
     } else {
         sendButtonUpdate(HALO_BTN_PLAY, nullptr, title, playing ? "Stop" : "Play", subtitle);
     }
 }
 
 void updateHaloSubtitle(const char* subtitle) {
-    sendButtonUpdate(HALO_BTN_PLAY, nullptr, nullptr, nullptr, subtitle);
-    if (deviceType == DEVICE_RECORD) {
+    // In icon mode the Play subtitle carries the playback state, so leave
+    // it alone here (a turntable reports no track info anyway).
+    if (!(deviceType == DEVICE_RECORD && haloPlayIcon)) {
+        sendButtonUpdate(HALO_BTN_PLAY, nullptr, nullptr, nullptr, subtitle);
+    }
+    if (deviceType != DEVICE_CD) {
         sendButtonUpdate(HALO_BTN_STOP, nullptr, nullptr, nullptr, subtitle);
     }
 }
@@ -123,8 +178,9 @@ void onMessageCallback(WebsocketsMessage message) {
         Serial.print("Halo button pressed: ");
 
         if (buttonID == HALO_BTN_PLAY) {
-            // Record players have their own Stop button, so Play is always Play.
-            if (deviceType == DEVICE_RECORD || playbackState != PLAYING) {
+            // Turntables and tape decks have their own Stop button, so Play
+            // is always Play there.
+            if (deviceType != DEVICE_CD || playbackState != PLAYING) {
               Serial.println("PLAY");
               sendHexCommand(PLAY);
             } else {

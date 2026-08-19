@@ -50,6 +50,35 @@ void handleOTAUpdate() {
     }
 }
 
+// Result page shown after an OTA upload finishes. Refreshes after 12 sec.
+void handleOTAResult() {
+    bool failed = Update.hasError();
+    String page = String("<!DOCTYPE html><html><head><meta charset='UTF-8'>"
+        "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+        "<title>BGAdaptor</title>");
+    // Only bounce back automatically on success — on failure the adaptor
+    // isn't restarting, so there's nothing to wait for.
+    if (!failed) page += "<meta http-equiv='refresh' content='12;url=/'>";
+    page += "<style>body{font-family:system-ui,sans-serif;background:#f0f0f0;color:#111;"
+        "display:flex;align-items:center;justify-content:center;height:100vh;margin:0;text-align:center}"
+        "@media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}"
+        "div{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:2rem;max-width:340px}"
+        "@media(prefers-color-scheme:dark){div{background:#252525;border-color:#333}}"
+        "h2{font-size:16px;font-weight:500;margin:0 0 .5rem}"
+        "p{font-size:13px;color:#888;margin:0 0 1.25rem}"
+        "a{display:inline-block;height:36px;line-height:36px;padding:0 14px;font-size:13px;"
+        "border-radius:8px;background:#1D9E75;color:#fff;text-decoration:none}</style></head><body><div>";
+    page += failed
+        ? "<h2>Update failed</h2><p>The firmware was not installed :(.</p>"
+        : "<h2>Update successful</h2><p>Restarting the BGAdaptor. You will be redirected automatically in a few seconds.</p>";
+    page += "<a href='/'>Back to main page</a></div></body></html>";
+
+    server.send(200, "text/html", page);
+    delay(1000);
+
+    if (!failed) ESP.restart();
+}
+
 void handleUpdate() {
     if (server.hasArg("productIP")) {
         String newIP = server.arg("productIP");
@@ -438,10 +467,19 @@ void handleUpdateFeature() {
 void handleUpdateDeviceType() {
     if (server.hasArg("type")) {
         String value = server.arg("type");
-        if (value == "cd" || value == "record") {
-            deviceType = (value == "record") ? DEVICE_RECORD : DEVICE_CD;
+        if (value == "cd" || value == "record" || value == "tape") {
+            deviceType = (value == "record") ? DEVICE_RECORD
+                       : (value == "tape")   ? DEVICE_TAPE
+                                             : DEVICE_CD;
             preferences.putString("deviceType", value);
-            // The Halo layout differs between the two, so push the new
+            // The Play-button icon is a turntable-only option and its toggle
+            // is hidden for other decks, so clear it here — otherwise it
+            // would stay set with no way to switch it off.
+            if (deviceType != DEVICE_RECORD && haloPlayIcon) {
+                haloPlayIcon = false;
+                preferences.putBool("haloPlayIcon", false);
+            }
+            // The Halo layout differs between deck types, so push the new
             // configuration straight away — no restart needed.
             if (haloClient.available()) sendConfigToHalo();
             server.send(200, "text/plain", "OK");
@@ -449,6 +487,18 @@ void handleUpdateDeviceType() {
         }
     }
     server.send(400, "text/plain", "Invalid device type");
+}
+
+void handleUpdateHaloPlayIcon() {
+    if (server.hasArg("enabled")) {
+        haloPlayIcon = (server.arg("enabled") == "true");
+        preferences.putBool("haloPlayIcon", haloPlayIcon);
+        // The button's content type changes, so the Halo needs the new config.
+        if (haloClient.available()) sendConfigToHalo();
+        server.send(200, "text/plain", "OK");
+        return;
+    }
+    server.send(400, "text/plain", "Missing value");
 }
 
 void handleStatus() {
@@ -464,8 +514,9 @@ void handleStatus() {
     jsonResponse += "\"halo_serial\":\"" + haloSerial + "\",";
     jsonResponse += "\"halo_ws_connected\":" + String(haloClient.available() ? "true" : "false") + ",";    
     jsonResponse += "\"firmware\":\"" + String(FIRMWARE_VERSION) + "\",";
-    jsonResponse += "\"device_type\":\"" + String(deviceType == DEVICE_RECORD ? "record" : "cd") + "\",";
-    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";    
+    jsonResponse += "\"device_type\":\"" + String(deviceType == DEVICE_RECORD ? "record" : deviceType == DEVICE_TAPE ? "tape" : "cd") + "\",";
+    jsonResponse += "\"feature_enabled\": " + String(haloControls ? "true" : "false") + ",";
+    jsonResponse += "\"halo_play_icon\": " + String(haloPlayIcon ? "true" : "false") + ",";    
     jsonResponse += "\"mqtt_connected\":" + String(mqttConnected ? "true" : "false")+ ",";
     jsonResponse += "\"trigger_source\":\"" + triggerSource + "\"";            
     jsonResponse += "}";
@@ -520,6 +571,57 @@ void handleResetWifi() {
     ESP.restart(); 
 }
 
+// Full reset: wipe every stored preference and the WiFi credentials, then
+// restart. The adaptor comes back up in AP mode with nothing configured.
+void handleFactoryReset() {
+    server.send(200, "text/html", R"rawliteral(
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset</title>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+        <style>
+            *{box-sizing:border-box;margin:0;padding:0}
+            body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
+            @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
+            .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
+            .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
+            .page-title i{font-size:22px;color:#666}
+            .page-title h1{font-size:18px;font-weight:500}
+            .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
+            @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
+            .card-header{display:flex;align-items:center;gap:10px;margin-bottom:.5rem}
+            .card-header i{font-size:18px;color:#a32d2d}
+            .card-header h2{font-size:15px;font-weight:500}
+            .sub{font-size:13px;color:#888}
+        </style>
+        </head>
+        <body>
+        <div class="page">
+        <div class="page-title">
+            <i class="ti ti-refresh-alert"></i>
+            <h1>Reset</h1>
+        </div>
+        <div class="card">
+            <div class="card-header">
+            <i class="ti ti-settings-off"></i>
+            <h2>All settings cleared</h2>
+            </div>
+            <p class="sub">Restarting in AP mode&hellip; Connect to the <strong>BGAdaptor</strong> hotspot to set it up again.</p>
+        </div>
+        </div>
+        </body>
+        </html>
+        )rawliteral");
+
+    preferences.clear();   // product, Halo, MQTT, deck type, trigger source
+    wm.resetSettings();    // WiFi credentials
+    delay(1000);
+    ESP.restart();
+}
+
 void registerWebRoutes() {
     // ── Web server routes ───────────────────────────────────────────
     server.on("/update-source", HTTP_GET, handleUpdateTriggerSource);
@@ -528,6 +630,7 @@ void registerWebRoutes() {
     server.on("/discover-halo", HTTP_GET, handleDiscoverHalo);
     
     server.on("/settings/reset-wifi", HTTP_GET, handleResetWifi);
+    server.on("/settings/factory-reset", HTTP_GET, handleFactoryReset);
     
     server.on("/mqtt", HTTP_GET, handleMqttConfig);
     server.on("/mqtt", HTTP_POST, handleMqttUpdate);
@@ -564,11 +667,8 @@ void registerWebRoutes() {
     server.on("/update-halo", HTTP_GET, handleUpdateHalo);
     server.on("/update-feature", HTTP_GET, handleUpdateFeature);
     server.on("/update-devicetype", HTTP_GET, handleUpdateDeviceType);
+    server.on("/update-haloplayicon", HTTP_GET, handleUpdateHaloPlayIcon);
     server.on("/status", handleStatus);
-    server.on("/update-ota", HTTP_POST, []() {
-        server.send(200, "text/plain", (Update.hasError()) ? "Update Failed!" : "Update Successful! Rebooting...");
-        delay(1000);
-        ESP.restart();
-    }, handleOTAUpdate);
+    server.on("/update-ota", HTTP_POST, handleOTAResult, handleOTAUpdate); 
     server.begin();
 }

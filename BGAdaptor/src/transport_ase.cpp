@@ -210,6 +210,7 @@ void processSSE(String message) {
 
 void readSSE() {
     static String lineBuffer = "";
+    const size_t MAX_SSE_LINE = 2048;  // Reasonable max for SSE data
 
     while (sseClient.available()) {
         char c = sseClient.read();
@@ -222,6 +223,11 @@ void readSSE() {
             lineBuffer = "";
         } else {
             lineBuffer += c;
+            // Add bounds check
+            if (lineBuffer.length() >= MAX_SSE_LINE) {
+                Serial.println("SSE buffer overflow - resetting");
+                lineBuffer = "";
+            }
         }
     }
 }

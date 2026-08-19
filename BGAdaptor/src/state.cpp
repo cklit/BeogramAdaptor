@@ -25,6 +25,7 @@ bool beogramStateDirty = false;
 HaloUpdate haloUpdate = NONE;
 
 bool haloControls;
+bool haloPlayIcon = false;
 bool lineInActive = false;
 bool waitingForPlay = false;
 bool mqttConnected = false;

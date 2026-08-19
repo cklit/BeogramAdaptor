@@ -42,6 +42,7 @@ extern HaloUpdate haloUpdate;
 
 // Flags
 extern bool haloControls;
+extern bool haloPlayIcon;      // turntable only: show a turntable icon on the Halo Play button
 extern bool lineInActive;
 extern bool waitingForPlay;
 extern bool mqttConnected;

@@ -8,7 +8,7 @@
 #define NUMPIXELS 1
 
 // Version scheme: BGAdaptor.<year>.<month>.<day> of the build/release
-#define FIRMWARE_VERSION "BGAdaptor.2026.8.18"
+#define FIRMWARE_VERSION "BGAdaptor.2026.8.19_beta12"
 
 // ── Platform selection ──────────────────────────────────────────────
 // The adaptor supports two B&O platforms with different transports:
@@ -20,7 +20,7 @@ enum Platform { PLATFORM_ASE, PLATFORM_MOZART };
 // one button can toggle Play/Stop. Record players report "playing" but
 // never report the tonearm being lifted, so a toggle would get out of sync
 // — those get dedicated Play and Stop buttons instead.
-enum DeviceType { DEVICE_CD, DEVICE_RECORD };
+enum DeviceType { DEVICE_CD, DEVICE_RECORD, DEVICE_TAPE };
 
 // ── Network constants ───────────────────────────────────────────────
 
@@ -65,6 +65,24 @@ enum BeogramCommand : uint8_t {
     DIGIT8 = 0x3B,
     DIGIT9 = 0x1B,
     DIGIT0 = 0x3F
+};
+
+// Tape decks speak the same Datalink but with different byte values, both
+// for commands and for feedback. sendHexCommand() translates outgoing
+// commands and identifyState() translates incoming feedback, so the rest
+// of the firmware keeps using the canonical names below.
+enum TapeCommand : uint8_t {
+    TAPE_PLAY = 0x15,
+    TAPE_STOP = 0x29,
+    TAPE_STANDBY = 0x16,
+    TAPE_NEXT = 0x39,      // cue forward
+    TAPE_PREVIOUS = 0x05   // cue backwards
+};
+
+enum TapeFeedback : uint8_t {
+    TAPE_PLAYING_FB = 0x09,
+    TAPE_STOPPED_FB = 0x69,
+    TAPE_STANDBY_FB = 0x3E
 };
 
 enum PlaybackState {

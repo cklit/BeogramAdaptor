@@ -11,9 +11,13 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BGAdaptor</title>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
+    /* Icons are inlined as an SVG sprite: no webfont, no network request,
+       so the page renders fully even with no internet access. */
+    .ic{width:1em;height:1em;display:inline-block;vertical-align:-.125em;flex:none;
+      fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+    .ic .f,symbol.f *{fill:currentColor;stroke:none}
     body{font-family:system-ui,sans-serif;background:#f0f0f0;padding:1.5rem 1rem;color:#111}
     @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
     .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
@@ -58,6 +62,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     @media(prefers-color-scheme:dark){.btn-highlight{background:#1D9E75;border-color:#1D9E75;color:#fff}.btn-highlight:hover{background:#178a65}}
     .btn-danger{border-color:#f09595;color:#a32d2d}
     .btn-danger:hover{background:#fcebeb}
+    #bg-controls .btn{height:48px;min-width:56px;padding:0;font-size:20px;border-radius:10px}    
     @media(prefers-color-scheme:dark){.btn-danger{border-color:#793333;color:#f09595}.btn-danger:hover{background:#2a1a1a}}
     .select-row{display:flex;align-items:center;justify-content:space-between;gap:1rem}
     .select-row label{font-size:13px;color:#666}
@@ -83,8 +88,8 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     @media(prefers-color-scheme:dark){.fw-row span{color:#aaa}}
     .fw-val{font-size:12px;font-family:monospace;color:#666;background:#f5f5f5;padding:2px 8px;border-radius:4px}
     @media(prefers-color-scheme:dark){.fw-val{background:#333;color:#bbb}}
-    .file-row{display:flex;align-items:center;gap:8px;margin-top:.75rem}
-    .file-row input[type=file]{font-size:12px;color:#666;flex:1}
+    .file-row{display:flex;align-items:center;gap:8px;margin-top:.75rem;flex-wrap:wrap}
+    .file-row input[type=file]{font-size:12px;color:#666;flex:1 1 160px;min-width:0;max-width:100%}
     .link-row{display:flex;align-items:center;gap:8px;font-size:13px;color:#666}
     .link-row i{font-size:16px}
     .link-row a{color:#185fa5;text-decoration:none}
@@ -94,47 +99,73 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     .info-text{display:none;font-size:12px;color:#888;margin-top:6px}
     .action-row{display:flex;gap:8px;margin-top:.75rem;flex-wrap:wrap}
     .hint{font-size:12px;color:#888;margin-top:.5rem}
+    .settings-row{display:flex;align-items:center;gap:10px}
+    .settings-row .summary{margin-left:6px}
+    .settings-label{font-size:15px;font-weight:500}
+    #settings-icon{font-size:18px;color:#888;line-height:1}
+    .settings-row .btn{margin-left:auto}
+    .summary{display:flex;align-items:center;gap:16px;flex:0 1 auto}
+    .sum-item{display:none;align-items:center;font-size:19px;color:#1D9E75;line-height:1}
+    .sum-item.on{display:inline-flex}
+    #settings-cards{display:none;flex-direction:column;gap:1rem}
+    #settings-cards.open{display:flex}
   </style>
 </head>
 <body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-brand-github" viewBox="0 0 24 24"><path d="M9 19c-4.3 1.4 -4.3 -2.5 -6 -3m12 5v-3.5c0 -1 .1 -1.4 -.5 -2c2.8 -.3 5.5 -1.4 5.5 -6a4.6 4.6 0 0 0 -1.3 -3.2a4.2 4.2 0 0 0 -.1 -3.2s-1.1 -.3 -3.5 1.3a12.3 12.3 0 0 0 -6.2 0c-2.4 -1.6 -3.5 -1.3 -3.5 -1.3a4.2 4.2 0 0 0 -.1 3.2a4.6 4.6 0 0 0 -1.3 3.2c0 4.6 2.7 5.7 5.5 6c-.6 .6 -.6 1.2 -.5 2v3.5" /></symbol><symbol id="i-chevron-up" viewBox="0 0 24 24"><path d="M6 15l6 -6l6 6" /></symbol><symbol id="i-chevrons-left" viewBox="0 0 24 24"><path d="M11 7l-5 5l5 5" /> <path d="M17 7l-5 5l5 5" /></symbol><symbol id="i-chevrons-right" viewBox="0 0 24 24"><path d="M7 7l5 5l-5 5" /> <path d="M13 7l5 5l-5 5" /></symbol><symbol id="i-circle" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /></symbol><symbol id="i-circle-filled" viewBox="0 0 24 24" class="f"><path d="M7 3.34a10 10 0 1 1 -4.995 8.984l-.005 -.324l.005 -.324a10 10 0 0 1 4.995 -8.336z" /></symbol><symbol id="i-device-audio-tape" viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" /> <path d="M3 17l4 -3h10l4 3" /> <path d="M7 9.5a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /> <path d="M16 9.5a.5 .5 0 1 0 1 0a.5 .5 0 1 0 -1 0" fill="currentColor" /></symbol><symbol id="i-device-remote" viewBox="0 0 24 24"><path d="M10 10a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /> <path d="M7 5a2 2 0 0 1 2 -2h6a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-6a2 2 0 0 1 -2 -2l0 -14" /> <path d="M12 3v2" /> <path d="M10 15v.01" /> <path d="M10 18v.01" /> <path d="M14 18v.01" /> <path d="M14 15v.01" /></symbol><symbol id="i-device-speaker" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v14a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -14" /> <path d="M9 14a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /> <path d="M12 7l0 .01" /></symbol><symbol id="i-disc" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /> <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M7 12a5 5 0 0 1 5 -5" /> <path d="M12 17a5 5 0 0 0 5 -5" /></symbol><symbol id="i-loader-2" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9" /></symbol><symbol id="i-player-pause" viewBox="0 0 24 24"><path d="M6 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -12" /> <path d="M14 6a1 1 0 0 1 1 -1h2a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-2a1 1 0 0 1 -1 -1l0 -12" /></symbol><symbol id="i-player-play" viewBox="0 0 24 24"><path d="M7 4v16l13 -8l-13 -8" /></symbol><symbol id="i-player-skip-back" viewBox="0 0 24 24"><path d="M20 5v14l-12 -7l12 -7" /> <path d="M4 5l0 14" /></symbol><symbol id="i-player-skip-forward" viewBox="0 0 24 24"><path d="M4 5v14l12 -7l-12 -7" /> <path d="M20 5l0 14" /></symbol><symbol id="i-player-stop" viewBox="0 0 24 24"><path d="M5 7a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2l0 -10" /></symbol><symbol id="i-power" viewBox="0 0 24 24"><path d="M7 6a7.75 7.75 0 1 0 10 0" /> <path d="M12 4l0 8" /></symbol><symbol id="i-radar-2" viewBox="0 0 24 24"><path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M15.51 15.56a5 5 0 1 0 -3.51 1.44" /> <path d="M18.832 17.86a9 9 0 1 0 -6.832 3.14" /> <path d="M12 12v9" /></symbol><symbol id="i-refresh-alert" viewBox="0 0 24 24"><path d="M20 11a8.1 8.1 0 0 0 -15.5 -2m-.5 -4v4h4" /> <path d="M4 13a8.1 8.1 0 0 0 15.5 2m.5 4v-4h-4" /> <path d="M12 9l0 3" /> <path d="M12 15l.01 0" /></symbol><symbol id="i-settings" viewBox="0 0 24 24"><path d="M10.325 4.317c.426 -1.756 2.924 -1.756 3.35 0a1.724 1.724 0 0 0 2.573 1.066c1.543 -.94 3.31 .826 2.37 2.37a1.724 1.724 0 0 0 1.065 2.572c1.756 .426 1.756 2.924 0 3.35a1.724 1.724 0 0 0 -1.066 2.573c.94 1.543 -.826 3.31 -2.37 2.37a1.724 1.724 0 0 0 -2.572 1.065c-.426 1.756 -2.924 1.756 -3.35 0a1.724 1.724 0 0 0 -2.573 -1.066c-1.543 .94 -3.31 -.826 -2.37 -2.37a1.724 1.724 0 0 0 -1.065 -2.572c-1.756 -.426 -1.756 -2.924 0 -3.35a1.724 1.724 0 0 0 1.066 -2.573c-.94 -1.543 .826 -3.31 2.37 -2.37c1 .608 2.296 .07 2.572 -1.065" /> <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /></symbol><symbol id="i-smart-home" viewBox="0 0 24 24"><path d="M19 8.71l-5.333 -4.148a2.666 2.666 0 0 0 -3.274 0l-5.334 4.148a2.665 2.665 0 0 0 -1.029 2.105v7.2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-7.2c0 -.823 -.38 -1.6 -1.03 -2.105" /> <path d="M16 15c-2.21 1.333 -5.792 1.333 -8 0" /></symbol><symbol id="i-square-rounded-arrow-right" viewBox="0 0 24 24"><path d="M12 16l4 -4l-4 -4" /> <path d="M8 12h8" /> <path d="M12 3c7.2 0 9 1.8 9 9c0 7.2 -1.8 9 -9 9c-7.2 0 -9 -1.8 -9 -9c0 -7.2 1.8 -9 9 -9" /></symbol><symbol id="i-upload" viewBox="0 0 24 24"><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" /> <path d="M7 9l5 -5l5 5" /> <path d="M12 4l0 12" /></symbol><symbol id="i-vinyl" viewBox="0 0 24 24"><path d="M16 3.937a9 9 0 1 0 5 8.063" /> <path d="M11 12a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M19 4a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" /> <path d="M20 4l-3.5 10l-2.5 2" /></symbol></svg>
 <div class="page">
   <div class="page-title">
-    <i class="ti ti-disc"></i>
+    <svg class="ic"><use href="#i-disc"/></svg>
     <h1>BGAdaptor</h1>
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-disc"></i><h2>Beogram</h2><button class="hdr-btn" id="bg-standby" title="Beogram standby"><i class="ti ti-power"></i></button></div>
+     <div class="card-header"><svg class="ic" id="bg-card-icon"><use href="#i-disc"/></svg><h2 id="bg-card-title">Beogram</h2><button class="hdr-btn" id="bg-standby" title="Beogram standby"><svg class="ic"><use href="#i-power"/></svg></button></div>
     <div class="status-row">
       <span class="status-label">State</span>
-      <span class="badge disconnected" id="bg-state"><i class="ti ti-circle"></i>Unknown</span>
+      <span class="badge disconnected" id="bg-state"><svg class="ic"><use href="#i-circle"/></svg>Unknown</span>
     </div>
     <div class="status-row" id="bg-track-row">
       <span class="status-label">Track</span>
       <span class="ip-chip" id="bg-track">-</span>
     </div>
-    <div class="input-row" style="margin-top:8px;justify-content:center">
-      <button class="btn" id="bg-prev" title="Previous track"><i class="ti ti-player-skip-back"></i></button>
-      <button class="btn" id="bg-playpause" title="Play"><i class="ti ti-player-play" id="bg-playpause-icon"></i></button>
-      <button class="btn" id="bg-play" title="Play"><i class="ti ti-player-play"></i></button>
-      <button class="btn" id="bg-stop" title="Lift tonearm"><i class="ti ti-chevron-up"></i></button> 
-      <button class="btn" id="bg-next" title="Next track"><i class="ti ti-player-skip-forward"></i></button>
+    <div class="input-row" id="bg-controls" style="margin-top:8px;justify-content:center;gap:12px">
+      <button class="btn" id="bg-prev" title="Previous track"><svg class="ic" id="bg-prev-icon"><use href="#i-player-skip-back"/></svg></button>
+      <button class="btn" id="bg-playpause" title="Play"><svg class="ic" id="bg-playpause-icon"><use href="#i-player-play"/></svg></button>
+      <button class="btn" id="bg-play" title="Play"><svg class="ic"><use href="#i-player-play"/></svg></button>
+      <button class="btn" id="bg-stop" title="Stop"><svg class="ic" id="bg-stop-icon"><use href="#i-chevron-up"/></svg></button> 
+      <button class="btn" id="bg-next" title="Next track"><svg class="ic" id="bg-next-icon"><use href="#i-player-skip-forward"/></svg></button>
     </div>
   </div>
 
+  <div class="card" id="settings-bar">
+    <div class="settings-row">
+      <svg class="ic" id="settings-icon"><use href="#i-settings"/></svg>
+      <span class="settings-label">Settings</span>
+      <div class="summary" id="settings-summary">
+        <span class="sum-item" id="sum-product" title="Product connected"><svg class="ic"><use href="#i-device-speaker"/></svg></span>
+        <span class="sum-item" id="sum-halo" title="Beoremote Halo connected"><svg class="ic"><use href="#i-device-remote"/></svg></span>
+        <span class="sum-item" id="sum-mqtt" title="Home Assistant connected"><svg class="ic"><use href="#i-smart-home"/></svg></span>
+      </div>
+      <button class="btn" id="settingsToggle">Show</button>
+    </div>
+  </div>
+
+  <div id="settings-cards">
   <div class="card">
-    <div class="card-header"><i class="ti ti-settings"></i><h2>Deck type</h2></div>
+    <div class="card-header"><svg class="ic"><use href="#i-square-rounded-arrow-right"/></svg><h2>Type</h2></div>
     <div class="select-row" style="margin-bottom:0">
       <label>Connected deck</label>
       <div class="seg" id="deviceTypeSeg">
         <button data-type="cd" id="dtype-cd">CD</button>
         <button data-type="record" id="dtype-record">Turntable</button>
+        <button data-type="tape" id="dtype-tape">Tape</button>
       </div>
     </div>
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-device-speaker"></i><h2 id="product-platform-label">Product</h2></div>
+    <div class="card-header"><svg class="ic"><use href="#i-device-speaker"/></svg><h2 id="product-platform-label">Product</h2></div>
     <div class="form-group" id="product-connect-form" style="margin-top:0;margin-bottom:1.25rem">
       <label for="discover-results">Product</label>
       <select id="discover-results" style="width:100%">
@@ -142,7 +173,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
         <option value="__manual__">Enter IP address manually&hellip;</option>
       </select>
       <div class="input-row" style="margin-top:8px">
-        <button class="btn" id="product-scan-btn"><i class="ti ti-radar-2"></i>&nbsp;Start product scan</button>
+        <button class="btn" id="product-scan-btn"><svg class="ic"><use href="#i-radar-2"/></svg>&nbsp;Start product scan</button>
       </div>
       <span class="info-text" id="scan-note" style="display:none">Scanning the network &mdash; this takes around 10 seconds&hellip;</span>
       <div id="manual-ip-row" style="display:none;margin-top:8px">
@@ -168,13 +199,15 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">Platform</span>
       <span class="ip-chip" id="product-platform"></span>
     </div>    
-    <div class="status-row">
-      <span class="status-label">IP address</span>
-      <span class="ip-chip" id="product-ip">—</span>
-    </div>
-    <div class="status-row">
-      <span class="status-label">Connection</span>
-      <span class="badge disconnected" id="product-status"><i class="ti ti-circle"></i>Disconnected</span>
+    <div id="product-linked-rows" style="display:none">
+      <div class="status-row">
+        <span class="status-label">IP address</span>
+        <span class="ip-chip" id="product-ip">—</span>
+      </div>
+      <div class="status-row">
+        <span class="status-label">Status</span>
+        <span class="badge disconnected" id="product-status"><svg class="ic"><use href="#i-circle"/></svg>Disconnected</span>
+      </div>
     </div>
     <div class="divider"></div>
     <div class="select-row" style="margin-bottom:0">
@@ -187,7 +220,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-remote"></i><h2>Beoremote Halo</h2></div>
+    <div class="card-header"><svg class="ic"><use href="#i-device-remote"/></svg><h2>Beoremote Halo</h2></div>
     <div class="form-group" id="halo-connect-form" style="margin-top:0;margin-bottom:1.25rem">
       <label for="halo-discover-results">Halo</label>
       <select id="halo-discover-results" style="width:100%">
@@ -195,7 +228,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
         <option value="__manual__">Enter IP address manually&hellip;</option>
       </select>
       <div class="input-row" style="margin-top:8px">
-        <button class="btn" id="halo-scan-btn"><i class="ti ti-radar-2"></i>&nbsp;Start Halo scan</button>
+        <button class="btn" id="halo-scan-btn"><svg class="ic"><use href="#i-radar-2"/></svg>&nbsp;Start Halo scan</button>
       </div>
       <span class="info-text" id="halo-scan-note" style="display:none">Scanning the network &mdash; this takes around 5 seconds&hellip;</span>
       <div class="input-row" id="halo-manual-ip-row" style="display:none;margin-top:8px">
@@ -211,21 +244,30 @@ static const char* htmlPage PROGMEM = R"rawliteral(
       <span class="status-label">Serial number</span>
       <span class="ip-chip" id="halo-serial"></span>
     </div>
-    <div class="status-row">
-      <span class="status-label">IP address</span>
-      <span class="ip-chip" id="halo-ip">—</span>
-    </div>
-    <div class="status-row" style="margin-bottom:0">
-      <span class="status-label">Connection</span>
-      <span class="badge disconnected" id="halo-ws-status"><i class="ti ti-circle"></i>Disconnected</span>
-    </div>
-    <div class="divider"></div>
-    <div class="toggle-row">
-      <span>Activate controls when Halo wakes up</span>
-      <label class="toggle">
-        <input type="checkbox" id="featureToggle">
-        <span class="toggle-slider"></span>
-      </label>
+    <div id="halo-linked-rows" style="display:none">
+      <div class="status-row">
+        <span class="status-label">IP address</span>
+        <span class="ip-chip" id="halo-ip">—</span>
+      </div>
+      <div class="status-row" style="margin-bottom:0">
+        <span class="status-label">Status</span>
+        <span class="badge disconnected" id="halo-ws-status"><svg class="ic"><use href="#i-circle"/></svg>Disconnected</span>
+      </div>
+      <div class="divider"></div>
+      <div class="toggle-row">
+        <span>Activate controls when Halo wakes up</span>
+        <label class="toggle">
+          <input type="checkbox" id="featureToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row" id="halo-playicon-row" style="display:none">
+        <span>Show turntable icon on the Play button</span>
+        <label class="toggle">
+          <input type="checkbox" id="haloPlayIconToggle">
+          <span class="toggle-slider"></span>
+        </label>
+      </div>
     </div>
     <div class="action-row" id="halo-action-row" style="display:none">
       <button class="btn btn-danger" id="halo-unlink-btn">Unlink Halo</button>
@@ -233,10 +275,10 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-smart-home"></i><h2>Home Assistant</h2></div>
+    <div class="card-header"><svg class="ic"><use href="#i-smart-home"/></svg><h2>Home Assistant</h2></div>
     <div class="status-row" style="margin-bottom:0">
       <span class="status-label">MQTT</span>
-      <span class="badge disconnected" id="mqtt-status"><i class="ti ti-circle"></i>Disconnected</span>
+      <span class="badge disconnected" id="mqtt-status"><svg class="ic"><use href="#i-circle"/></svg>Disconnected</span>
     </div>
     <div class="action-row">
       <a href="/mqtt"><button class="btn">Configure MQTT</button></a>
@@ -244,7 +286,7 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <div class="card">
-    <div class="card-header"><i class="ti ti-upload"></i><h2>Firmware update</h2></div>
+    <div class="card-header"><svg class="ic"><use href="#i-upload"/></svg><h2>Firmware update</h2></div>
     <div class="fw-row">
       <span>Current version</span>
       <span class="fw-val" id="fw-version">Loading...</span>
@@ -258,8 +300,18 @@ static const char* htmlPage PROGMEM = R"rawliteral(
   </div>
 
   <div class="card">
-    <div class="link-row">
-      <i class="ti ti-brand-github"></i>
+    <div class="card-header">
+      <svg class="ic"><use href="#i-refresh-alert"/></svg>
+      <h2>Reset</h2>
+      <button class="btn btn-danger" id="factory-reset-btn" style="margin-left: auto;">Reset BGAdaptor</button>
+    </div>
+    <p class="hint" style="margin-top:0">Will reset <strong>all settings</strong> &mdash; its connection to the product, Beoremote Halo, Home Assistant, and WiFi will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
+  </div>
+</div>
+
+<div class="card">
+  <div class="link-row">
+    <svg class="ic"><use href="#i-brand-github"/></svg>
       <a href="https://github.com/cklit/BGAdaptor" target="_blank">View on GitHub</a>
     </div>
   </div>
@@ -273,6 +325,10 @@ const SOURCE_OPTIONS={
 };
 let currentPlatform='';
 
+function setIcon(id,name){
+  document.getElementById(id).innerHTML='<use href="#i-'+name+'"/>';
+}
+
 function validateIP(ip){
   let p=ip.split('.');
   if(p.length!==4)return false;
@@ -281,7 +337,7 @@ function validateIP(ip){
 
 function setBadge(el,connected){
   el.className='badge '+(connected?'connected':'disconnected');
-  el.innerHTML=connected?'<i class="ti ti-circle-filled"></i>Connected':'<i class="ti ti-circle"></i>Disconnected';
+  el.innerHTML=connected?'<svg class="ic"><use href="#i-circle-filled"/></svg>Connected':'<svg class="ic"><use href="#i-circle"/></svg>Disconnected';
 }
 
 let manualPlatform='';
@@ -313,12 +369,12 @@ function renderBeogram(state,track,playing){
   bgPlayingNow=!!playing;
   let b=document.getElementById('bg-state');
   b.className='badge '+(playing?'connected':'disconnected');
-  b.innerHTML='<i class="ti ti-circle"></i>'+state;
+  b.innerHTML='<svg class="ic"><use href="#i-circle"/></svg>'+state;
   document.getElementById('bg-track').textContent=track||'-';
   // CD: one button toggles. Turntable: separate Play and Lift, because a
   // lifted tonearm is never reported and a toggle would get out of sync.
   let pp=document.getElementById('bg-playpause');
-  document.getElementById('bg-playpause-icon').className=playing?'ti ti-player-pause':'ti ti-player-play';
+  setIcon('bg-playpause-icon',playing?'player-pause':'player-play');
   pp.title=playing?'Pause':'Play';
 }
 
@@ -348,8 +404,15 @@ function updateStatus(){
     setBadge(document.getElementById('product-status'),d.product_connected);
     setBadge(document.getElementById('halo-ws-status'),d.halo_ws_connected);
     setBadge(document.getElementById('mqtt-status'),d.mqtt_connected);
+    document.getElementById('sum-product').classList.toggle('on',!!d.product_connected);
+    document.getElementById('sum-halo').classList.toggle('on',!!d.halo_ws_connected);
+    document.getElementById('sum-mqtt').classList.toggle('on',!!d.mqtt_connected);
     document.getElementById('fw-version').textContent=d.firmware;
     document.getElementById('featureToggle').checked=d.feature_enabled;
+    document.getElementById('haloPlayIconToggle').checked=d.halo_play_icon;
+    // Only meaningful for a turntable with a Halo linked.
+    document.getElementById('halo-playicon-row').style.display=
+      (d.device_type==='record'&&d.halo_ip&&d.halo_ip!=='')?'flex':'none';
     if(d.device_type&&d.device_type!==currentDeviceType)applyDeviceType(d.device_type);
     document.getElementById('sourceSelect').value=d.trigger_source;
 
@@ -361,6 +424,7 @@ function updateStatus(){
     document.getElementById('product-serial').textContent=sn||'N/A. Manually added';
     document.getElementById('product-platform-row').style.display=hasProduct?'flex':'none';
     document.getElementById('product-platform').textContent=PLATFORM_LABELS[d.platform]||d.platform||'';    
+    document.getElementById('product-linked-rows').style.display=hasProduct?'block':'none';
     document.getElementById('product-connect-form').style.display=hasProduct?'none':'flex';
     document.getElementById('product-action-row').style.display=hasProduct?'flex':'none';
 
@@ -369,6 +433,7 @@ function updateStatus(){
     let hsn=d.halo_serial||'';
     document.getElementById('halo-serial-row').style.display=hasHalo?'flex':'none';
     document.getElementById('halo-serial').textContent=hsn||'N/A. Manually added';
+    document.getElementById('halo-linked-rows').style.display=hasHalo?'block':'none';
     document.getElementById('halo-connect-form').style.display=hasHalo?'none':'flex';
     document.getElementById('halo-action-row').style.display=hasHalo?'flex':'none';
   }).catch(()=>{});
@@ -446,7 +511,7 @@ document.getElementById('product-scan-btn').addEventListener('click',function(){
   let btn=this,err=document.getElementById('discover-error'),note=document.getElementById('scan-note');
   btn.disabled=true;
   btn.classList.add('scanning'); 
-  btn.innerHTML='<i class="ti ti-loader-2"></i>&nbsp;Scanning\u2026';
+  btn.innerHTML='<svg class="ic"><use href="#i-loader-2"/></svg>&nbsp;Scanning\u2026';
   err.style.display='none';note.style.display='block';
   fetch('/discover').then(r=>r.json()).then(d=>{
     let devices=(d&&d.devices)||[];
@@ -456,7 +521,7 @@ document.getElementById('product-scan-btn').addEventListener('click',function(){
   .finally(()=>{
     btn.disabled=false;
     btn.classList.remove('scanning');
-    btn.innerHTML='<i class="ti ti-radar-2"></i>&nbsp;Start product scan';
+    btn.innerHTML='<svg class="ic"><use href="#i-radar-2"/></svg>&nbsp;Start product scan';
     note.style.display='none';
   });
 });
@@ -509,7 +574,7 @@ document.getElementById('halo-scan-btn').addEventListener('click',function(){
   let btn=this,err=document.getElementById('halo-discover-error'),note=document.getElementById('halo-scan-note');
   btn.disabled=true;
   btn.classList.add('scanning');  
-  btn.innerHTML='<i class="ti ti-loader-2"></i>&nbsp;Scanning\u2026';
+  btn.innerHTML='<svg class="ic"><use href="#i-loader-2"/></svg>&nbsp;Scanning\u2026';
   err.style.display='none';note.style.display='block';
   fetch('/discover-halo').then(r=>r.json()).then(d=>{
     rebuildHaloOptions((d&&d.devices)||[]);
@@ -518,7 +583,7 @@ document.getElementById('halo-scan-btn').addEventListener('click',function(){
   .finally(()=>{
     btn.disabled=false;
     btn.classList.remove('scanning');
-    btn.innerHTML='<i class="ti ti-radar-2"></i>&nbsp;Start Halo scan';
+    btn.innerHTML='<svg class="ic"><use href="#i-radar-2"/></svg>&nbsp;Start Halo scan';
     note.style.display='none';
   });
 });
@@ -534,21 +599,53 @@ document.getElementById('halo-unlink-btn').addEventListener('click',function(){
 });
 
 let currentDeviceType='';
+
+// Title, icon, and standby label per deck type.
+const DECK_INFO={
+  cd:    ['Beogram CD','disc'],
+  record:['Beogram','vinyl'],
+  tape:  ['Beocord','device-audio-tape']
+};
+
 function applyDeviceType(t){
   currentDeviceType=t;
   document.getElementById('dtype-cd').className=t==='cd'?'active':'';
   document.getElementById('dtype-record').className=t==='record'?'active':'';
-  let rec=(t==='record');
-  document.getElementById('bg-playpause').style.display=rec?'none':'inline-flex';
-  document.getElementById('bg-play').style.display=rec?'inline-flex':'none';
-  document.getElementById('bg-stop').style.display=rec?'inline-flex':'none';
-  // A turntable reports no track numbers, so the row would just say "-".
-  document.getElementById('bg-track-row').style.display=rec?'none':'flex';
+  document.getElementById('dtype-tape').className=t==='tape'?'active':'';
+  let cd=(t==='cd'),tape=(t==='tape');
+  // CD: one toggling button, since its reported state is trustworthy.
+  // Turntable/tape: separate Play and Stop.
+  document.getElementById('bg-playpause').style.display=cd?'inline-flex':'none';
+  document.getElementById('bg-play').style.display=cd?'none':'inline-flex';
+  document.getElementById('bg-stop').style.display=cd?'none':'inline-flex';
+  // Only a CD player reports track numbers.
+  document.getElementById('bg-track-row').style.display=cd?'flex':'none';
+  // Tape cues rather than skipping, and stops rather than lifting.
+  setIcon('bg-prev-icon',tape?'chevrons-left':'player-skip-back');
+  setIcon('bg-next-icon',tape?'chevrons-right':'player-skip-forward');
+  document.getElementById('bg-prev').title=tape?'Cue backwards':'Previous track';
+  document.getElementById('bg-next').title=tape?'Cue forward':'Next track';
+  setIcon('bg-stop-icon',tape?'player-stop':'chevron-up');
+  document.getElementById('bg-stop').title=tape?'Stop':'Lift tonearm';
+  let info=DECK_INFO[t]||DECK_INFO.cd;
+  document.getElementById('bg-card-title').textContent=info[0];
+  setIcon('bg-card-icon',info[1]);
+  document.getElementById('bg-standby').title=info[0]+' standby';
 }
 applyDeviceType('cd');
 document.getElementById('deviceTypeSeg').addEventListener('click',function(e){
   let btn=e.target.closest('button');
   if(!btn||btn.dataset.type===currentDeviceType)return;
+  // A tape deck speaks a different command set than a CD player or
+  // turntable, so crossing that line means a different machine is wired
+  // up — worth confirming, since the wrong choice silently does nothing.
+  let wasTape=(currentDeviceType==='tape'),willBeTape=(btn.dataset.type==='tape');
+  if(currentDeviceType&&wasTape!==willBeTape){
+    let msg=willBeTape
+      ? 'Tape decks use a different Datalink command set. Only select this if a tape deck is connected \u2014 commands sent to a CD player or turntable will not work.'
+      : 'CD players and turntables use a different Datalink command set than tape decks. Only select this if that deck is connected.';
+    if(!confirm(msg+'\n\nContinue?'))return;
+  }
   applyDeviceType(btn.dataset.type);
   fetch('/update-devicetype?type='+btn.dataset.type);
 });
@@ -557,9 +654,31 @@ document.getElementById('featureToggle').addEventListener('change',function(){
   fetch('/update-feature?enabled='+this.checked);
 });
 
+document.getElementById('haloPlayIconToggle').addEventListener('change',function(){
+  fetch('/update-haloplayicon?enabled='+this.checked);
+});
+
+document.getElementById('factory-reset-btn').addEventListener('click',function(){
+  if(!confirm('Reset the adaptor?\n\nAll settings will be cleared \u2014 product, Halo, Home Assistant, deck type and WiFi credentials. The adaptor restarts and creates a BGAdaptor hotspot for setup.'))return;
+  location.href='/settings/factory-reset';
+});
+
 document.getElementById('sourceSelect').addEventListener('change',function(){
   fetch('/update-source?source='+this.value);
 });
+
+let settingsOpen=false;
+function applySettingsVisibility(){
+  document.getElementById('settings-cards').classList.toggle('open',settingsOpen);
+  let tb=document.getElementById('settingsToggle');
+  tb.textContent=settingsOpen?'Hide':'Show';
+  tb.classList.toggle('btn-danger',settingsOpen);
+}
+document.getElementById('settingsToggle').addEventListener('click',function(){
+  settingsOpen=!settingsOpen;
+  applySettingsVisibility();
+});
+applySettingsVisibility();
 
 setInterval(updateStatus,5000);
 updateStatus();
