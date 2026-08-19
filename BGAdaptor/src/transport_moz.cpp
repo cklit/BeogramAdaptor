@@ -28,6 +28,7 @@ void handleHttpResponse(const String& endpoint, const String& response) {
 }
 
 void sendHttpRequest(const String& endpoint, const String& method, const String& payload) {
+    if (productIP.length() == 0) return;
     if (WiFi.status() == WL_CONNECTED) {
         String url = "http://" + productIP + endpoint;
         Serial.println("Sending " + method + " request to: " + url);
@@ -57,26 +58,40 @@ void sendHttpRequest(const String& endpoint, const String& method, const String&
 
 // Reconnect both Mozart WebSockets only if not already connected
 void checkWebSocketConnection() {
-    if (millis() - wsLastReconnectAttempt > reconnectInterval) {
-        wsLastReconnectAttempt = millis();
-        if (!wsClient.available()) {
-            Serial.println("Reconnecting product websocket...");
-            if (wsClient.connect(("ws://" + productIP + ":" + WEBSOCKET_PORT).c_str())) {
-                wsClient.send("Hi Server!");
-                Serial.println("Product webSocket reconnected!");
-            } else {
-                Serial.println("Product webSocket reconnection failed.");
-            }
+    if (productIP.length() == 0) return;   // nothing to connect to
+    if (millis() - wsLastReconnectAttempt <= wsReconnectDelay) return;
+    wsLastReconnectAttempt = millis();
+
+    bool allConnected = true;
+
+    if (!wsClient.available()) {
+        Serial.println("Reconnecting product websocket...");
+        if (wsClient.connect(("ws://" + productIP + ":" + WEBSOCKET_PORT).c_str())) {
+            wsClient.send("Hi Server!");
+            Serial.println("Product webSocket reconnected!");
+        } else {
+            Serial.println("Product webSocket reconnection failed.");
+            allConnected = false;
         }
-        if (!remoteClient.available()) {
-            Serial.println("Reconnecting remote websocket...");
-            if (remoteClient.connect(("ws://" + productIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str())) {
-                remoteClient.send("Hi Server!");
-                Serial.println("Secondary websocket reconnected!");
-            } else {
-                Serial.println("Remote webSocket reconnection failed.");
-            }
+    }
+    if (!remoteClient.available()) {
+        Serial.println("Reconnecting remote websocket...");
+        if (remoteClient.connect(("ws://" + productIP + ":" + WEBSOCKET_PORT + "/remoteControl").c_str())) {
+            remoteClient.send("Hi Server!");
+            Serial.println("Secondary websocket reconnected!");
+        } else {
+            Serial.println("Remote webSocket reconnection failed.");
+            allConnected = false;
         }
+    }
+
+    // Each failed connect() blocks for seconds, so an unreachable product
+    // must be retried progressively less often — otherwise the loop stalls.
+    if (allConnected) {
+        wsReconnectDelay = reconnectInterval;
+    } else {
+        wsReconnectDelay = min(wsReconnectDelay * 2, reconnectMaxInterval);
+        Serial.println("Next product retry in " + String(wsReconnectDelay / 1000) + "s");
     }
 }
 

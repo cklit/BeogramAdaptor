@@ -23,6 +23,8 @@ extern unsigned long sseLastReconnectAttempt;
 extern unsigned long sseReconnectDelay;      // ASE: exponential backoff, start at 1s
 extern unsigned long sseLastDataReceived;    // ASE: last byte seen on the SSE stream
 extern unsigned long wsLastReconnectAttempt;    // Mozart
+extern unsigned long wsReconnectDelay;          // Mozart: grows while the product is unreachable
+extern unsigned long mqttReconnectDelay;        // grows while the broker is unreachable
 extern unsigned long haloLastReconnectAttempt;
 extern unsigned long mqttLastReconnectAttempt;
 extern unsigned long wsLastPingReceived;        // Mozart

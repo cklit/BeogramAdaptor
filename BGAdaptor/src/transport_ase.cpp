@@ -7,6 +7,7 @@
 #include <lwip/sockets.h>
 
 void forceSource() {
+    if (productIP.length() == 0) return;   // nothing linked — don't build a bogus URL
     if (WiFi.status() == WL_CONNECTED) {
         String payload = "{\"sourceType\":{\"type\":\"" + triggerSource + "\"}}";
         String url = "http://" + productIP + ":" + String(SSE_PORT) + "/BeoZone/Zone/ActiveSourceType";
