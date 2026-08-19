@@ -31,6 +31,7 @@ See this article for <a href="https://support.bang-olufsen.com/hc/en-us/articles
 
 _If your Data Link-capable Bang & Olufsen record player does not include a built-in RIAA pre-amp, it is possible to use a OneRemote riaa with Data Link passthrough (Example: https://shop.oneremote.dk/shop/69068-riaa-forstaerker/121270-riaa-iii-forforstaerker)_
 
+
 **Supported CD players that feature Data Link:**
 - Beogram CD 50
 - Beogram CD 3300
@@ -40,7 +41,8 @@ _If your Data Link-capable Bang & Olufsen record player does not include a built
 - Beogram CD 6500
 - Beogram CD 7000
 
-- **Supported tape decks that feature Data Link:**
+
+**Supported tape decks that feature Data Link:**
 - Beocord 3500
 - Beocord 4500
 - Beocord 5000
@@ -90,10 +92,9 @@ In the Settings section, tap Show.
 
 <img src="/screenshots/bgadaptor_bgcd.png" width="50%">
 
-In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
+In the Type section, you define what kind of source you have connected. The UI will change accordingly.
 
-Additionally you can select whether the Data Link source player is connected to Line-in or Optical. <br>_Ensure that your product supports optical input, if chosen. Connecting a B&O CD player via optical requires a coax to optical digital audio converter._ <br><br>
-<img src="/screenshots/bgadaptor_settings.png" width="50%">
+In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
 
 Once connected the BGAdaptor will monitor the event stream from the product.
 
@@ -118,6 +119,7 @@ Activating Line-in again will send PLAY and resume from the point where you left
 
 Sending a Standby or All-standby to the product from any interface will turn off the record player.
 
+
 ### Control using a Beoremote One BT:
 With a connected Beoremote One BT you can do basic control of the connected Data Link source. 
 
@@ -128,6 +130,7 @@ With a connected Beoremote One BT you can do basic control of the connected Data
 
 It is **not** possible to change track using the Bang & Olufsen app. Neither is it possible to change track from another room that has joined the experience.
 
+
 ### Control using a Beoremote Halo (OPTIONAL)
 You can connect a Beoremote Halo to the BGAdaptor from the webpage (_beogram.local_). This will create a custom page on the Halo for Next, Previous and Play/Pause control of the Data Link source.
 
@@ -136,6 +139,7 @@ If a Beogram CD player is connected, it will also show the currently playing tra
 _If you already is utilising the custom pages, e.g. through a Beoliving Intelligence, do not add your Halo to the BGAdaptor. Halo can only connect to one client at a time._
 
 <img src="/screenshots/Halo_controls.jpeg" width="400px">
+
 
 ### Mozart Platform only: Controls directly on the product: 
 Play, Pause, Next and previous works directly on a Mozart product (the < and > buttons are turned off when using Line-in, but they will still work). 
