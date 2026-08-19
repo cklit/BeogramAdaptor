@@ -85,13 +85,12 @@ Password: **password**
 
 Once your mobile device is connected, a captive portal will open automatically, where you can enter the credentials for your home WiFi network.
 
-When connected, enter _beogram.local_ in your browser. 
+When connected, enter _beogram.local_ in your browser. It is possible to activate commands on the Data Link source directly from this page. 
 
-
+Next, we can to connect to our network connected Bang & Olufsen product.
 In the Settings section, tap Show.
 
-<img src="/screenshots/bgadaptor_bgcd.png" width="50%">
-
+<img src="/screenshots/bgadaptor_bgcd.png" width="50%"><img src="/screenshots/bgadaptor_settings.png" width="50%">
 In the Type section, you define what kind of source you have connected. The UI will change accordingly.
 
 In the product selector field, you will find a dropdown menu. <br>To scan your network for compatible Bang & Olufsen speakers, press the **Start product scan** button - this scan takes around 10 seconds. <br>Once completed the list should be populated with your products. <br>Select the product the BGAdaptor is connected to in the dropdown menu. <br>Press the green **Connect** button (BGAdaptor will quickly restart if switching from an ASE-based to a Mozart-based product or vice versa).
