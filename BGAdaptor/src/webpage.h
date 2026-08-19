@@ -21,12 +21,12 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     @media(prefers-color-scheme:dark){body{background:#1a1a1a;color:#eee}}
     .page{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:1rem}
     .page-title{display:flex;align-items:center;gap:10px;padding:.25rem 0 .5rem}
-    .page-title i{font-size:22px;color:#666}
+    .page-title .ic{font-size:22px;color:#666}
     .page-title h1{font-size:18px;font-weight:500}
     .card{background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:1.25rem 1.5rem}
     @media(prefers-color-scheme:dark){.card{background:#252525;border-color:#333}}
     .card-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
-    .card-header i{font-size:18px;color:#888}
+    .card-header .ic{font-size:18px;color:#888}
     .card-header h2{font-size:15px;font-weight:500}
     .status-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:.65rem}
     .status-label{font-size:13px;color:#666}
