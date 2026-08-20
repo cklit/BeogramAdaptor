@@ -284,6 +284,7 @@ void loop() {
     server.handleClient();
     checkWiFiConnection();
     sendPlayAfterDelay();
+    checkStoppedTrackTimeout();
     secondButtonUpdate();
     activateHaloPage();
     mqtt.loop();

@@ -373,7 +373,7 @@ function renderBeogram(state,track,playing){
   bgPlayingNow=!!playing;
   let b=document.getElementById('bg-state');
   b.className='badge '+(playing?'connected':'disconnected');
-  b.innerHTML='<svg class="ic"><use href="#i-circle"/></svg>'+state;
+  b.innerHTML='<svg class="ic"><use href="#'+(playing?'i-circle-filled':'i-circle')+'"/></svg>'+state;
   document.getElementById('bg-track').textContent=track||'-';
   // CD: one button toggles. Turntable: separate Play and Lift, because a
   // lifted tonearm is never reported and a toggle would get out of sync.
