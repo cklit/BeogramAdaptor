@@ -302,9 +302,14 @@ static const char* htmlPage PROGMEM = R"rawliteral(
     <div class="card-header">
       <svg class="ic"><use href="#i-refresh-alert"/></svg>
       <h2>Reset</h2>
-      <button class="btn btn-danger" id="factory-reset-btn" style="margin-left: auto;">Reset BGAdaptor</button>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <button class="btn btn-danger" id="wifi-reset-btn">Reset WiFi only</button>
+        <button class="btn btn-danger" id="factory-reset-btn">Reset BGAdaptor</button>
+      </div>
     </div>
-    <p class="hint" style="margin-top:0">Will reset <strong>all settings</strong> &mdash; its connection to the product, Beoremote Halo, Home Assistant, and WiFi will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
+    <p class="hint" style="margin-top:0"><strong>Reset WiFi only</strong> clears the WiFi credentials and restarts in AP mode. Other settings are kept.</p><br>
+    <p class="hint" style="margin-top:0"><strong>Reset BGAdaptor</strong> will reset <strong>all settings</strong> &mdash; its connection to the product, Beoremote Halo, MQTT, and WiFi will be cleared. BGAdaptor will restart and expose a <strong>BGAdaptor</strong> hotspot. Refer to the GitHub page for first-time setup instructions.</p>
+
   </div>
 </div>
 
@@ -660,6 +665,11 @@ document.getElementById('haloPlayIconToggle').addEventListener('change',function
 document.getElementById('factory-reset-btn').addEventListener('click',function(){
   if(!confirm('Reset the adaptor?\n\nAll settings will be cleared \u2014 product, Halo, Home Assistant, deck type and WiFi credentials. The adaptor restarts and creates a BGAdaptor hotspot for setup.'))return;
   location.href='/settings/factory-reset';
+});
+
+document.getElementById('wifi-reset-btn').addEventListener('click',function(){
+  if(!confirm('Reset WiFi only?\n\nWiFi credentials will be cleared. Product, Halo and Home Assistant settings are kept. The adaptor restarts and creates a BGAdaptor hotspot to reconnect.'))return;
+  location.href='/settings/reset-wifi';
 });
 
 document.getElementById('sourceSelect').addEventListener('change',function(){

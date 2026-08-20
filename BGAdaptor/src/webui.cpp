@@ -604,7 +604,7 @@ void handleFactoryReset() {
             <svg class="ic"><use href="#i-settings-off"/></svg>
             <h2>All settings cleared</h2>
             </div>
-            <p class="sub">Restarting in AP mode&hellip; Connect to the <strong>BGAdaptor</strong> hotspot to set it up again.</p>
+            <p class="sub">Restarting in AP mode&hellip; Close this window and connect to the <strong>BGAdaptor</strong> hotspot to set it up again.</p>
         </div>
         </div>
         </body>
